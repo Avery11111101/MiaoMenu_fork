@@ -91,7 +91,7 @@ public class BedrockMenuManager {
         for (File file : files) {
             try {
                 String name = file.getName().replace(".yml", "");
-                FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+                YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
                 newMenus.put(name, new BedrockMenu(name, config, plugin, requirementService));
             } catch (RuntimeException e) {
                 plugin.getLogger().log(Level.WARNING, Lang.get("log.bedrock-menu.load-failed").replace("{0}", file.getName()), e);
@@ -100,12 +100,24 @@ public class BedrockMenuManager {
         menus = newMenus;
     }
 
+    public BedrockMenu getMenu(String menuName) {
+        if (menuName == null) return null;
+        BedrockMenu menu = menus.get(menuName);
+        if (menu == null && plugin.getJavaMenuManager() != null) {
+            var javaMenu = plugin.getJavaMenuManager().getMenu(menuName);
+            if (javaMenu != null) {
+                menu = BedrockMenuConverter.fromJavaMenu(javaMenu, plugin, requirementService);
+            }
+        }
+        return menu;
+    }
+
     public void openMenu(Player player, String menuName) {
         if (!isEnabled()) {
             player.sendMessage(Lang.get("open.error"));
             return;
         }
-        BedrockMenu menu = menus.get(menuName);
+        BedrockMenu menu = getMenu(menuName);
         if (MenuUtils.handleMenuNotFound(player, menu, menuName)) {
             return;
         }

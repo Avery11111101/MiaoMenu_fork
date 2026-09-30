@@ -25,6 +25,7 @@ public class BedrockMenu {
     private static volatile boolean cumulusReflectionInit = false;
     private static volatile Class<?> cumulusSimpleFormClass;
     private static volatile Class<?> cumulusFormImageClass;
+    private static volatile Class<?> cumulusFormImageTypeClass;
     private static volatile Object cumulusUrlType;
     private static volatile Object cumulusPathType;
 
@@ -36,6 +37,7 @@ public class BedrockMenu {
                 cumulusSimpleFormClass = Class.forName("org.geysermc.cumulus.form.SimpleForm");
                 cumulusFormImageClass = Class.forName("org.geysermc.cumulus.util.FormImage");
                 Class<?> typeEnum = Class.forName("org.geysermc.cumulus.util.FormImage$Type");
+                cumulusFormImageTypeClass = typeEnum;
                 for (Object constant : typeEnum.getEnumConstants()) {
                     if ("URL".equals(constant.toString())) {
                         cumulusUrlType = constant;
@@ -95,8 +97,11 @@ public class BedrockMenu {
             Object itemObj = items.get(index);
             if (itemObj instanceof Map<?, ?> map) {
                 String text = map.get(ConfigKeys.TEXT) != null ? map.get(ConfigKeys.TEXT).toString() : defaultText;
-                String icon = map.get(ConfigKeys.ICON) != null ? map.get(ConfigKeys.ICON).toString() : "";
-                String iconType = map.get(ConfigKeys.ICON_TYPE) != null ? map.get(ConfigKeys.ICON_TYPE).toString() : ConfigKeys.DEFAULT_ICON_TYPE;
+                String rawIcon = map.get(ConfigKeys.ICON) != null ? map.get(ConfigKeys.ICON).toString() : "";
+                String rawIconType = map.get(ConfigKeys.ICON_TYPE) != null ? map.get(ConfigKeys.ICON_TYPE).toString() : ConfigKeys.DEFAULT_ICON_TYPE;
+                BedrockIconSanitizer.SanitizedIcon sanitized = BedrockIconSanitizer.sanitize(rawIcon, rawIconType);
+                String icon = sanitized.pathOrUrl();
+                String iconType = sanitized.iconType();
                 String command = map.get(ConfigKeys.COMMAND) != null ? map.get(ConfigKeys.COMMAND).toString() : "";
                 String executeAs = map.get(ConfigKeys.EXECUTE_AS) != null ? map.get(ConfigKeys.EXECUTE_AS).toString() : "player";
                 String lockMessage = map.get("lock_message") != null ? map.get("lock_message").toString() : null;
@@ -149,7 +154,7 @@ public class BedrockMenu {
                 } else {
                     buttonText = PlaceholderUtils.parse(player, item.text(), plugin);
                 }
-                if (!locked && item.hasIcon()) {
+                if (item.hasIcon()) {
                     addIconButton(builder, cumulusFormImageClass, buttonText, item);
                 } else {
                     builder.getClass().getMethod("button", String.class).invoke(builder, buttonText);
@@ -163,9 +168,15 @@ public class BedrockMenu {
     }
 
     private void addIconButton(Object builder, Class<?> formImageClass, String buttonText, BedrockMenuItem item) throws ReflectiveOperationException {
-        Object imageType = parseImageType(item.iconType());
-        Object formImage = formImageClass.getMethod("of", formImageClass.getDeclaredClasses()[0], String.class)
-                .invoke(null, imageType, item.icon());
+        BedrockIconSanitizer.SanitizedIcon sanitized = BedrockIconSanitizer.sanitize(item.icon(), item.iconType());
+        if (sanitized.isEmpty()) {
+            builder.getClass().getMethod("button", String.class).invoke(builder, buttonText);
+            return;
+        }
+        Object imageType = parseImageType(sanitized.iconType());
+        Class<?> typeParam = cumulusFormImageTypeClass != null ? cumulusFormImageTypeClass : imageType.getClass();
+        Object formImage = formImageClass.getMethod("of", typeParam, String.class)
+                .invoke(null, imageType, sanitized.pathOrUrl());
         builder.getClass().getMethod("button", String.class, formImageClass)
                 .invoke(builder, buttonText, formImage);
     }

@@ -15,6 +15,9 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import com.fluxcraft.MiaoMenu.bedrockmenu.BedrockIconSanitizer;
+import com.fluxcraft.MiaoMenu.bedrockmenu.BedrockTextureMapper;
+
 /**
  * 把 DeluxeMenus 的 YAML 結構轉換為 MiaoMenu_fork 的 java_menus 格式。
  *
@@ -321,10 +324,17 @@ public final class DeluxeMenusImporter {
                 bItem.put("text", text);
 
                 String material = srcItem.getString("material", "");
-                String icon = MATERIAL_TO_BEDROCK_ICON.getOrDefault(
-                        material.toUpperCase(Locale.ROOT), "");
-                bItem.put("icon", icon);
-                bItem.put("icon_type", "path");
+                String rawIcon;
+                String rawIconType = "path";
+                if (material != null && material.toLowerCase(Locale.ROOT).startsWith("base64head:")) {
+                    rawIcon = material;
+                    rawIconType = "url";
+                } else {
+                    rawIcon = BedrockTextureMapper.getTexturePath(material);
+                }
+                BedrockIconSanitizer.SanitizedIcon sanitized = BedrockIconSanitizer.sanitize(rawIcon, rawIconType);
+                bItem.put("icon", sanitized.pathOrUrl());
+                bItem.put("icon_type", sanitized.iconType());
 
                 List<String> leftClicks = srcItem.getStringList("left_click_commands");
                 List<String> clickFallback = srcItem.getStringList("click_commands");

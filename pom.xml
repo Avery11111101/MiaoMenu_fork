@@ -13,7 +13,7 @@
 
     <groupId>com.fluxcraft</groupId>
     <artifactId>MiaoMenu_fork</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.0-beta.1</version>
     <packaging>jar</packaging>
     <name>MiaoMenu_fork</name>
     <description>MiaoMenu_fork — 喵喵選單插件分支版，支援 Paper/Folia/Geyser 26.2.x 與多語系。Fork: https://github.com/Avery11111101/MiaoMenu_fork ／ 原作 Original: https://github.com/Yamada0001/MiaoMenu</description>
@@ -22,7 +22,6 @@
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <paper.api.version>26.2.build.60-beta</paper.api.version>
-        <folialib.version>1.3.2</folialib.version>
         <bstats.version>3.1.0</bstats.version>
         <floodgate.version>2.2.5-SNAPSHOT</floodgate.version>
         <geyser.version>2.10.1-SNAPSHOT</geyser.version>
@@ -61,17 +60,12 @@
             <artifactId>paper-api</artifactId>
             <version>${paper.api.version}</version>
             <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.yaml</groupId>
-                    <artifactId>snakeyaml</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
-            <groupId>cn.handyplus.lib.adapter</groupId>
-            <artifactId>FoliaLib</artifactId>
-            <version>${folialib.version}</version>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.2</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.bstats</groupId>
@@ -175,10 +169,6 @@
                                 <relocation>
                                     <pattern>org.bstats</pattern>
                                     <shadedPattern>com.fluxcraft.MiaoMenu.bstats</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.tcoded.folialib</pattern>
-                                    <shadedPattern>com.fluxcraft.MiaoMenu.folialib</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

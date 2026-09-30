@@ -1,6 +1,7 @@
 package com.fluxcraft.MiaoMenu.javamenu;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,6 +159,26 @@ public class JavaMenu {
 
     public Map<String, RequirementBlock> getRequirementBlocks() {
         return requirementBlocks;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public List<MenuItem> getItems() {
+        return Collections.unmodifiableList(items);
+    }
+
+    public List<Map<?, ?>> getViewRequirements() {
+        return viewRequirements;
+    }
+
+    public String getDenyMessage() {
+        return denyMessage;
+    }
+
+    public String getFallbackMenu() {
+        return fallbackMenu;
     }
 
     public static class MenuHolder implements org.bukkit.inventory.InventoryHolder {
@@ -325,16 +346,6 @@ public class JavaMenu {
             return item;
         }
 
-        public boolean isLocked(Player player, RequirementService requirementService, String menuName, Map<String, RequirementBlock> requirementBlocks) {
-            RequirementResult result = evaluateRequirement(player, requirementService, menuName, requirementBlocks);
-            return result != null && !result.allowed();
-        }
-
-        public String getLockMessage(Player player, RequirementService requirementService, String menuName, Map<String, RequirementBlock> requirementBlocks) {
-            RequirementResult result = evaluateRequirement(player, requirementService, menuName, requirementBlocks);
-            return resolveLockMessage(player, plugin, result);
-        }
-
         public int getSlot() {
             return slot;
         }
@@ -361,6 +372,30 @@ public class JavaMenu {
 
         public List<String> getClickCommands() {
             return clickCommands;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getMaterial() {
+            return material;
+        }
+
+        public List<String> getLore() {
+            return Collections.unmodifiableList(lore);
+        }
+
+        public ConditionGroup getConditionGroup() {
+            return conditionGroup;
+        }
+
+        public String getLockMessage() {
+            return lockMessage;
+        }
+
+        public int getCustomModelData() {
+            return customModelData;
         }
 
         public record LockState(boolean locked, String message) {

@@ -17,6 +17,7 @@ import org.bukkit.advancement.Advancement;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 
 import com.fluxcraft.MiaoMenu.MiaoMenu;
@@ -376,10 +377,15 @@ public class RequirementService {
         if (objective == null) {
             objective = plugin.getServer().getScoreboardManager().getMainScoreboard().getObjective(objectiveName);
         }
-        if (objective == null) {
-            return null;
+        try {
+            Score score = objective.getScore(player);
+            if (score != null) {
+                return score.getScore();
+            }
+        } catch (Throwable ignored) {
         }
-        return objective.getScore(player.getName()).getScore();
+        Score fallback = objective.getScore(player.getName());
+        return fallback != null ? fallback.getScore() : null;
     }
 
     private Integer getInteger(Map<?, ?> requirement, String key) {

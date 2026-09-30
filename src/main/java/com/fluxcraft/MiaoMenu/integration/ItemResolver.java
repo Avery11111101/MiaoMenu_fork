@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 
 import com.fluxcraft.MiaoMenu.MiaoMenu;
@@ -60,6 +61,10 @@ public class ItemResolver {
             if (item != null) return item;
         } else if (lower.startsWith("base64head:")) {
             ItemStack item = resolveBase64Head(materialString.substring(11));
+            if (item != null) return item;
+        } else if (lower.startsWith("player_head:") || lower.startsWith("head:")) {
+            String owner = materialString.substring(materialString.indexOf(':') + 1);
+            ItemStack item = resolvePlayerHead(owner);
             if (item != null) return item;
         }
 
@@ -198,7 +203,32 @@ public class ItemResolver {
         return null;
     }
 
-    static URI resolveSkinTextureUri(String encodedTexture) {
+    private ItemStack resolvePlayerHead(String headOwner) {
+        if (headOwner == null || headOwner.isBlank()) {
+            return new ItemStack(Material.PLAYER_HEAD);
+        }
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        var meta = head.getItemMeta();
+        if (meta instanceof SkullMeta skullMeta) {
+            String name = headOwner.trim();
+            try {
+                if (name.length() == 36 && name.contains("-")) {
+                    UUID uuid = UUID.fromString(name);
+                    var profile = plugin.getServer().createProfile(uuid);
+                    skullMeta.setPlayerProfile(profile);
+                } else {
+                    var profile = plugin.getServer().createProfile(name);
+                    skullMeta.setPlayerProfile(profile);
+                }
+            } catch (Exception e) {
+                skullMeta.setOwner(name);
+            }
+            head.setItemMeta(skullMeta);
+        }
+        return head;
+    }
+
+    public static URI resolveSkinTextureUri(String encodedTexture) {
         if (encodedTexture == null || encodedTexture.isBlank()) {
             return null;
         }

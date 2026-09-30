@@ -64,6 +64,10 @@ public class JavaMenuManager {
         this.menus = newMenus;
     }
 
+    public JavaMenu getMenu(String menuName) {
+        return menuName != null && menus != null ? menus.get(menuName) : null;
+    }
+
     public void openMenu(Player player, String menuName) {
         JavaMenu menu = menus.get(menuName);
         if (MenuUtils.handleMenuNotFound(player, menu, menuName)) {

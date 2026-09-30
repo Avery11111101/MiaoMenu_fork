@@ -42,7 +42,6 @@ import com.fluxcraft.MiaoMenu.update.UpdateChecker;
 import com.fluxcraft.MiaoMenu.update.UpdateNoticeListener;
 import com.fluxcraft.MiaoMenu.utils.Lang;
 
-import cn.handyplus.lib.adapter.HandySchedulerUtil;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public class MiaoMenu extends JavaPlugin {
@@ -136,7 +135,6 @@ public class MiaoMenu extends JavaPlugin {
         LegacyDataMigrator.migrateIfNeeded(this);
         saveDefaultConfig();
         Lang.init(this);
-        HandySchedulerUtil.init(this);
         configManager = new ConfigManager(this);
         configManager.loadConfig();
         configManager.checkAndRefreshMenus();

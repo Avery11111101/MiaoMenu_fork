@@ -8,6 +8,20 @@
 >
 ### 面向 Paper / Folia / Geyser **26.2.x**（Java 25）的輕量級選單插件，同時為 Java 版與基岩版玩家提供原生互動體驗，內建多語系切換支援。
 
+## 🌟 核心特色亮點 (1.4.1)
+
+- 🎮 **跨平臺原生體驗**：Java 版箱子 GUI，基岩版（Geyser / Floodgate）自動渲染為 Cumulus 原生 SimpleForm 表單。
+- 🖼️ **基岩版圖片智慧修復與防呆**：
+  - 自動修正原版貼圖路徑中的 `.png`（解決基岩端破圖、紫黑方格問題）。
+  - 自動偵測 URL 並升級為 `https://`，防止 iOS ATS 與 Android Cleartext 安全限制導致圖片無法下載。
+  - 支援 `base64head:<hash>` 與動態玩家頭顱皮膚，直接解析為 Mojang CDN 圖片並於基岩端正常顯示。
+  - 內建 `BedrockTextureMapper`，涵蓋 1.16~1.21+（包括重錘 Mace、合成器 Crafter、下界合金、染色玻璃板等）所有材質對照。
+- 🔄 **JavaMenu 自動無痛轉譯**：若服主未單獨建立 `bedrock_menus/`，基岩玩家開啟時將自動由 `java_menus/` 動態轉譯為基岩版表單，完全無需手動維護雙倍選單檔案！
+- ⚡ **Paper 現代 API 與 Java 25 原生支援**：
+  - 全面相容最新 Paper 26.2 / Folia 原生排程器。
+  - 支援動態玩家頭顱材質（`player_head:<player_name>` 與 `head:<name>`）。
+  - 採用現代化記分板 ScoreHolder API，具備安全空值與舊版相容防護。
+
 ## 向後相容聲明（從原版 MiaoMenu 升級必看）
 
 Fork 版重點放在 **不改使用者操作習慣**：

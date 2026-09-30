@@ -11,7 +11,7 @@ api-version: '26.2'
 description: MiaoMenu_fork — 喵喵選單插件分支版，支援 Java 版與基岩版玩家。Fork https://github.com/Avery11111101/MiaoMenu_fork ／原作 https://github.com/Yamada0001/MiaoMenu
 author: Avery11111101
 folia-supported: true
-softdepend: [floodgate, Geyser-Spigot, PlaceholderAPI, CraftEngine]
+softdepend: [floodgate, Geyser-Spigot, PlaceholderAPI, CraftEngine, ItemsAdder, MMOItems, HeadDatabase]
 commands:
   dgeysermenu:
     description: 主指令（open / reload / import / lang / about / help）

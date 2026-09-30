@@ -12,6 +12,7 @@ import com.fluxcraft.MiaoMenu.menu.action.impl.CmdAction;
 import com.fluxcraft.MiaoMenu.menu.action.impl.DefaultAction;
 import com.fluxcraft.MiaoMenu.menu.action.impl.MessageAction;
 import com.fluxcraft.MiaoMenu.menu.action.impl.PlayerAction;
+import com.fluxcraft.MiaoMenu.security.InputValidator;
 import com.fluxcraft.MiaoMenu.utils.Lang;
 
 public class ActionRegistry {
