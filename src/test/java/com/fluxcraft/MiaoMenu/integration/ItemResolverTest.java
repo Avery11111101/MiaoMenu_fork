@@ -35,4 +35,12 @@ class ItemResolverTest {
     void acceptsLegacyTextureHash() {
         assertEquals(EXPECTED_URI, ItemResolver.resolveSkinTextureUri(TEXTURE_HASH));
     }
+
+    @Test
+    void decodesStandardMinecraftHeadsPayload() {
+        String payload = "{\"textures\":{\"SKIN\":{\"url\":\"http://textures.minecraft.net/texture/e00b95764024ba1766a41e97669ae0d8ad75c3efb756be5e7ab332c918ee9117\"}}}";
+        String encoded = Base64.getEncoder().encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+        URI uri = ItemResolver.resolveSkinTextureUri(encoded);
+        assertEquals(URI.create("https://textures.minecraft.net/texture/e00b95764024ba1766a41e97669ae0d8ad75c3efb756be5e7ab332c918ee9117"), uri);
+    }
 }

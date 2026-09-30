@@ -13,7 +13,7 @@
 
     <groupId>com.fluxcraft</groupId>
     <artifactId>MiaoMenu_fork</artifactId>
-    <version>1.4.0-beta.1</version>
+    <version>1.4.0-beta.2</version>
     <packaging>jar</packaging>
     <name>MiaoMenu_fork</name>
     <description>MiaoMenu_fork — 喵喵選單插件分支版，支援 Paper/Folia/Geyser 26.2.x 與多語系。Fork: https://github.com/Avery11111101/MiaoMenu_fork ／ 原作 Original: https://github.com/Yamada0001/MiaoMenu</description>

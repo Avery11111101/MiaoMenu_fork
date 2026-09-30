@@ -182,19 +182,17 @@ public class ItemResolver {
             if (skinTexture == null) {
                 return null;
             }
-            var urlClass = Class.forName("org.bukkit.profile.PlayerProfile");
+            UUID deterministicUuid = UUID.nameUUIDFromBytes(skinTexture.toString().getBytes(StandardCharsets.UTF_8));
             var server = plugin.getServer();
-            var profile = server.createProfile(UUID.randomUUID());
+            var profile = server.createProfile(deterministicUuid);
             var textures = profile.getTextures();
-            var url = skinTexture.toURL();
-            textures.setSkin(url);
+            textures.setSkin(skinTexture.toURL());
             profile.setTextures(textures);
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             var meta = head.getItemMeta();
-            if (meta != null) {
-                var skullMetaClass = meta.getClass();
-                skullMetaClass.getMethod("setOwnerProfile", urlClass).invoke(meta, profile);
-                head.setItemMeta(meta);
+            if (meta instanceof SkullMeta skullMeta) {
+                skullMeta.setOwnerProfile(profile);
+                head.setItemMeta(skullMeta);
             }
             return head;
         } catch (Exception e) {
