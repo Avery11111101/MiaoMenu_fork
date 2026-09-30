@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     MiaoMenu_fork
-    喵喵選單插件分支版，支援 Paper / Folia / Geyser 26.1.x（亦相容 26.2 alpha）與多語系。
-    Fork:   https://github.com/Avery11111101/MiaoMenu_fork
+    喵喵選單插件分支版，支援 Paper / Folia / Geyser 26.2.x 與多語系。
+    Fork:           https://github.com/Avery11111101/MiaoMenu_fork
     原作 / Original: https://github.com/Yamada0001/MiaoMenu
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.fluxcraft</groupId>
     <artifactId>MiaoMenu_fork</artifactId>
-    <version>1.3.3</version>
+    <version>1.4.0</version>
     <packaging>jar</packaging>
     <name>MiaoMenu_fork</name>
-    <description>MiaoMenu_fork — 喵喵選單插件分支版，支援 Paper/Folia/Geyser 26.1.x（亦相容 26.2 alpha）與多語系。Fork: https://github.com/Avery11111101/MiaoMenu_fork ／ 原作 Original: https://github.com/Yamada0001/MiaoMenu</description>
+    <description>MiaoMenu_fork — 喵喵選單插件分支版，支援 Paper/Folia/Geyser 26.2.x 與多語系。Fork: https://github.com/Avery11111101/MiaoMenu_fork ／ 原作 Original: https://github.com/Yamada0001/MiaoMenu</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <paper.api.version>26.1.2.build.72-stable</paper.api.version>
-        <folia.api.version>26.1.2.build.8-stable</folia.api.version>
-        <folialib.version>1.2.3</folialib.version>
+        <paper.api.version>26.2.build.60-beta</paper.api.version>
+        <folialib.version>1.3.2</folialib.version>
         <bstats.version>3.1.0</bstats.version>
         <floodgate.version>2.2.5-SNAPSHOT</floodgate.version>
         <geyser.version>2.10.1-SNAPSHOT</geyser.version>
-        <placeholderapi.version>2.12.2</placeholderapi.version>
+        <placeholderapi.version>2.12.3</placeholderapi.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <craftengine.version>0.0.67</craftengine.version>
+        <gson.version>2.13.2</gson.version>
     </properties>
 
     <repositories>
@@ -38,28 +38,20 @@
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
-            <id>geyser</id>
-            <url>https://repo.opencollab.dev/main/</url>
-        </repository>
-        <repository>
-            <id>placeholderapi</id>
+            <id>extendedclip</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
         <repository>
-            <id>bstats</id>
-            <url>https://repo.codemc.org/repository/maven-public/</url>
+            <id>opencollab-snapshot</id>
+            <url>https://repo.opencollab.dev/main/</url>
         </repository>
         <repository>
-            <id>momirealms-repo</id>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
+            <id>momirealms</id>
             <url>https://repo.momirealms.net/releases/</url>
-        </repository>
-        <repository>
-            <id>momirealms-repo-mirror1</id>
-            <url>https://repo-momi.gtemc.cn/releases/</url>
-        </repository>
-        <repository>
-            <id>momirealms-repo-mirror2</id>
-            <url>https://repo.gtemc.net/releases/</url>
         </repository>
     </repositories>
 
@@ -71,22 +63,15 @@
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.apache.commons</groupId>
-                    <artifactId>commons-lang3</artifactId>
+                    <groupId>org.yaml</groupId>
+                    <artifactId>snakeyaml</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>dev.folia</groupId>
-            <artifactId>folia-api</artifactId>
-            <version>${folia.api.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>cn.handyplus.lib.adapter</groupId>
             <artifactId>FoliaLib</artifactId>
             <version>${folialib.version}</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.bstats</groupId>
@@ -116,12 +101,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.momirealms</groupId>
-            <artifactId>craft-engine-core</artifactId>
-            <version>${craftengine.version}</version>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>26.0.2</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -131,26 +116,26 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.10.0</version>
+            <version>5.12.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.12.0</version>
+            <version>5.18.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -159,17 +144,26 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <release>${java.version}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.3</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>9.8</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm-commons</artifactId>
+                        <version>9.8</version>
+                    </dependency>
+                </dependencies>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -177,25 +171,36 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <relocations>
                                 <relocation>
                                     <pattern>org.bstats</pattern>
-                                    <shadedPattern>com.fluxcraft.MiaoMenu.libs.bstats</shadedPattern>
+                                    <shadedPattern>com.fluxcraft.MiaoMenu.bstats</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>com.tcoded.folialib</pattern>
-                                    <shadedPattern>com.fluxcraft.MiaoMenu.lib.folialib</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.apache.commons.lang3</pattern>
-                                    <shadedPattern>com.fluxcraft.MiaoMenu.libs.commons_lang3</shadedPattern>
+                                    <shadedPattern>com.fluxcraft.MiaoMenu.folialib</shadedPattern>
                                 </relocation>
                             </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
 </project>

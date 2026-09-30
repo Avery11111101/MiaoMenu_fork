@@ -11,28 +11,34 @@
 # =========================================================
 
 # 請勿隨意更改版本號！！！！
-config-version: 16 # config.yml 的版本號檢測
+config-version: 25 # config.yml 的版本號檢測
 menu-version: 8    # test.yml 的版本號檢測
 
-# 語言（lang/<language>.yml 內建：en、zh_TW；預設 en）
-# Language file under lang/<language>.yml (bundled: en, zh_TW; default en)
-language: en
+# 語言（lang/<language>.yml 內建：zh_TW、en、zh-cn、ja-jp、vi-vn 等；預設 zh_TW）
+# Language file under lang/<language>.yml (bundled: zh_TW, en, zh-cn, ja-jp, vi-vn, etc.)
+language: zh_TW
 
 settings:
+  # 文本語言備用指定（對應 lang/ 目錄下的檔案名稱，若未設定 language 則以此為準）
+  lang: "zh_TW"
+
   open-menu-sound: # 開啟選單的音效設定
     enabled: true # 是否啟用「開啟選單時」的音效
     sound: "entity.experience_orb.pickup" # 原版 MC 音效
     volume: 1.0 # 音量 範圍 0.0-1.0
     pitch: 1.0  # 音調 範圍 0.5-2.0
 
-    # 預設開啟的選單
+  # 預設開啟的選單
   default-menu: "test"
 
   hot-reload:
     enabled: true # 當檔案被儲存時，無需輸入 reload，設定會自動重新載入。
   auto-generate-examples: true # 自動產生範例檔案開關，僅在沒有範例時才產生
 
-  velocity-network: true # 是否啟用 Velocity 網路支援（自動偵測 BungeeCord）
+  # 代理網路模式：NONE, BUNGEE, 或 VELOCITY
+  proxy-mode: NONE
+  # 是否啟用指令內容安全驗證（啟用後可能阻止含特殊字元的指令）
+  validate-commands: false
 
   # 物品解析器設定（自動偵測已安裝的插件 IA / CE / MMO / HEADBASE）
   item-resolver:

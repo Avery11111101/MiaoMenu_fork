@@ -1,13 +1,13 @@
 # =============================================================================
 # MiaoMenu_fork
-# 喵喵選單插件分支版，支援 Paper / Folia / Geyser 26.1.x（亦相容 26.2 alpha）與多語系。
+# 喵喵選單插件分支版，支援 Paper / Folia / Geyser 26.2.x 與多語系。
 # Fork:           https://github.com/Avery11111101/MiaoMenu_fork
 # 原作 / Original: https://github.com/Yamada0001/MiaoMenu
 # =============================================================================
 name: ${project.name}
 version: ${project.version}
 main: com.fluxcraft.MiaoMenu.MiaoMenu
-api-version: '26.1'
+api-version: '26.2'
 description: MiaoMenu_fork — 喵喵選單插件分支版，支援 Java 版與基岩版玩家。Fork https://github.com/Avery11111101/MiaoMenu_fork ／原作 https://github.com/Yamada0001/MiaoMenu
 author: Avery11111101
 folia-supported: true

@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -41,34 +41,50 @@ public class BedrockMenuManager {
             RequirementService requirementService,
             RequirementFeedbackHandler requirementFeedbackHandler
     ) {
+        this(plugin, actionRegistry, soundsClock, requirementService, requirementFeedbackHandler, true);
+    }
+
+    public BedrockMenuManager(
+            MiaoMenu plugin,
+            ActionRegistry actionRegistry,
+            SoundsClock soundsClock,
+            RequirementService requirementService,
+            RequirementFeedbackHandler requirementFeedbackHandler,
+            boolean floodgateAvailable
+    ) {
         this.plugin = plugin;
         this.actionRegistry = actionRegistry;
         this.soundsClock = soundsClock;
         this.requirementService = requirementService;
         this.requirementFeedbackHandler = requirementFeedbackHandler;
+        this.reflectionAccess = floodgateAvailable ? createReflectionAccess() : null;
     }
 
-    private FloodgateReflectionAccess getReflectionAccess() {
-        FloodgateReflectionAccess local = reflectionAccess;
-        if (local != null) {
-            return local;
+    private FloodgateReflectionAccess createReflectionAccess() {
+        try {
+            return new FloodgateReflectionAccess();
+        } catch (RuntimeException | LinkageError e) {
+            plugin.getLogger().log(Level.WARNING, Lang.get("log.bedrock-menu.reflection-setup-failed"), e);
+            return null;
         }
-        synchronized (this) {
-            if (reflectionAccess == null) {
-                reflectionAccess = new FloodgateReflectionAccess();
-            }
-            return reflectionAccess;
-        }
+    }
+
+    public boolean isEnabled() {
+        return reflectionAccess != null;
     }
 
     public void loadAllMenus() {
+        if (!isEnabled()) {
+            menus = Collections.emptyMap();
+            return;
+        }
         Map<String, BedrockMenu> newMenus = new ConcurrentHashMap<>();
         File dir = new File(plugin.getDataFolder(), "bedrock_menus");
         if (!dir.exists() && !dir.mkdirs()) {
             plugin.getLogger().severe(Lang.get("log.bedrock-menu.directory-create-failed"));
             return;
         }
-        File[] files = dir.listFiles((d, n) -> n.endsWith(".yml"));
+        File[] files = dir.listFiles((_, n) -> n.endsWith(".yml"));
         if (files == null) {
             return;
         }
@@ -85,6 +101,10 @@ public class BedrockMenuManager {
     }
 
     public void openMenu(Player player, String menuName) {
+        if (!isEnabled()) {
+            player.sendMessage(Lang.get("open.error"));
+            return;
+        }
         BedrockMenu menu = menus.get(menuName);
         if (MenuUtils.handleMenuNotFound(player, menu, menuName)) {
             return;
@@ -105,13 +125,16 @@ public class BedrockMenuManager {
     }
 
     private void sendFloodgateForm(Player player, BedrockMenu menu) {
+        FloodgateReflectionAccess access = reflectionAccess;
+        if (access == null) {
+            throw new IllegalStateException(Lang.get("log.bedrock-menu.reflection-setup-failed"));
+        }
         Object formBuilder = menu.buildForm(player);
         if (formBuilder == null) {
             plugin.getLogger().warning(Lang.get("log.bedrock-menu.form-build-returned-null").replace("{0}", player.getName()));
             return;
         }
         try {
-            FloodgateReflectionAccess access = getReflectionAccess();
             Object builtForm = access.buildForm(formBuilder, createFormResponseHandler(menu.getAllItems(), player, menu));
             access.sendForm(player.getUniqueId(), builtForm);
         } catch (ReflectiveOperationException e) {
@@ -162,8 +185,14 @@ public class BedrockMenuManager {
             return;
         }
         BedrockMenu.BedrockMenuItem item = allItems.get(clickedIndex);
-        if (item.isLocked(player, requirementService, menu.getName(), menu.getRequirementBlocks())) {
-            player.sendMessage(Lang.get("message.item-locked"));
+        RequirementResult requirementResult = item.evaluateRequirement(
+                player,
+                requirementService,
+                menu.getName(),
+                menu.getRequirementBlocks()
+        );
+        if (!requirementResult.allowed()) {
+            player.sendMessage(item.getLockMessage(player, plugin, requirementResult));
             return;
         }
         String cmd = item.getCommand();

@@ -1,0 +1,68 @@
+# =========================================================
+# MiaoMenu_fork .gitignore
+# Fork:           https://github.com/Avery11111101/MiaoMenu_fork
+# 原作 / Original: https://github.com/Yamada0001/MiaoMenu
+# =========================================================
+
+# --- AI 記憶與私有筆記（嚴格禁止上傳遠端） ---
+README.AI.md
+*.ai.md
+.gemini/
+
+# --- Maven build output ---
+target/
+*.jar
+*.war
+*.ear
+*.class
+*.log
+dependency-reduced-pom.xml
+
+# --- IntelliJ IDEA ---
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# --- Eclipse ---
+.project
+.classpath
+.settings/
+.metadata/
+bin/
+
+# --- VS Code ---
+.vscode/
+
+# --- NetBeans ---
+nb-configuration.xml
+nbproject/
+nbactions.xml
+
+# --- Mac / Windows / Linux 系統檔 ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# --- 編輯器 swap / backup ---
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
+# --- 本機環境 / 機密 ---
+.env
+.env.local
+*.local
+
+# --- 測試 / 覆蓋率輸出 ---
+hs_err_pid*
+replay_pid*
+.surefire-*

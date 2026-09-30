@@ -13,6 +13,8 @@ message:
   invalid-player: "&c✦ Player not found, or they are offline."
   requirement-denied: "&c✦ Requirements are not met to perform this menu action."
   item-locked: "&c✦ This feature is not unlocked yet."
+  item-locked-suffix: " &8[Locked]"
+  bedrock-locked-prefix: " &8[Locked] &7"
   unsafe-input: "&c✦ Input does not meet safety rules; the action was blocked."
   rate-limited: "&c✦ Too many actions, please try again later."
   config-update-warning: "&e✦ Old configuration detected; attempting auto-migration..."

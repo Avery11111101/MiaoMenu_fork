@@ -1,21 +1,37 @@
 package com.fluxcraft.MiaoMenu.integration;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import com.fluxcraft.MiaoMenu.MiaoMenu;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class ItemResolver {
+    private static final String TEXTURE_HOST = "textures.minecraft.net";
+    private static final Pattern TEXTURE_HASH = Pattern.compile("[0-9a-fA-F]{64}");
+
     private final MiaoMenu plugin;
     private final Material fallbackMaterial;
-    private Boolean craftEngineAvailable;
-    private Boolean itemsAdderAvailable;
-    private Boolean mmoItemsAvailable;
-    private Boolean headDatabaseAvailable;
+    private volatile Boolean craftEngineAvailable;
+    private volatile Boolean itemsAdderAvailable;
+    private volatile Boolean mmoItemsAvailable;
+    private volatile Boolean headDatabaseAvailable;
+
+    // Cached reflection classes (initialized lazily)
+    private static volatile boolean ceClassesInit = false;
+    private static volatile Class<?> ceKeyClass;
+    private static volatile Class<?> ceItemsClass;
+    private static volatile Class<?> iaCustomStackClass;
+    private static volatile Class<?> mmoItemsClass;
+    private static volatile Class<?> headDbMainClass;
 
     public ItemResolver(MiaoMenu plugin, Material fallbackMaterial) {
         this.plugin = plugin;
@@ -76,10 +92,9 @@ public class ItemResolver {
             return null;
         }
         try {
-            var keyClass = Class.forName("net.momirealms.craftengine.core.util.Key");
-            Object key = keyClass.getMethod("of", String.class).invoke(null, id);
-            var itemsClass = Class.forName("net.momirealms.craftengine.bukkit.api.CraftEngineItems");
-            Object customItem = invokeById(itemsClass, keyClass, key);
+            initCraftEngineClasses();
+            Object key = ceKeyClass.getMethod("of", String.class).invoke(null, id);
+            Object customItem = invokeById(ceItemsClass, ceKeyClass, key);
             if (customItem != null) {
                 return (ItemStack) customItem.getClass().getMethod("buildItemStack").invoke(customItem);
             }
@@ -87,6 +102,13 @@ public class ItemResolver {
             plugin.getLogger().fine("CraftEngine item not found: " + id);
         }
         return null;
+    }
+
+    private static void initCraftEngineClasses() throws ClassNotFoundException {
+        if (ceClassesInit) return;
+        ceClassesInit = true;
+        ceKeyClass = Class.forName("net.momirealms.craftengine.core.util.Key");
+        ceItemsClass = Class.forName("net.momirealms.craftengine.bukkit.api.CraftEngineItems");
     }
 
     private static Object invokeById(Class<?> itemsClass, Class<?> keyClass, Object key) throws ReflectiveOperationException {
@@ -98,7 +120,10 @@ public class ItemResolver {
             return null;
         }
         try {
-            var customStack = Class.forName("dev.lone.itemsadder.api.CustomStack")
+            if (iaCustomStackClass == null) {
+                iaCustomStackClass = Class.forName("dev.lone.itemsadder.api.CustomStack");
+            }
+            var customStack = iaCustomStackClass
                     .getMethod("getInstance", String.class).invoke(null, id);
             if (customStack != null) {
                 return (ItemStack) customStack.getClass().getMethod("getItemStack").invoke(customStack);
@@ -117,7 +142,9 @@ public class ItemResolver {
             String[] parts = id.split(":", 2);
             if (parts.length != 2) return null;
             var pluginObj = org.bukkit.Bukkit.getPluginManager().getPlugin("MMOItems");
-            var mmoItemsClass = Class.forName("net.Indyuce.mmoitems.MMOItems");
+            if (mmoItemsClass == null) {
+                mmoItemsClass = Class.forName("net.Indyuce.mmoitems.MMOItems");
+            }
             var getItemMethod = mmoItemsClass.getMethod("getItem", String.class, String.class);
             Object itemStack = getItemMethod.invoke(pluginObj, parts[0], parts[1]);
             return (ItemStack) itemStack;
@@ -132,8 +159,10 @@ public class ItemResolver {
             return null;
         }
         try {
-            var apiClass = Class.forName("com.arcaniax.headdatabase.Main");
-            var apiMethod = apiClass.getMethod("getHead", String.class);
+            if (headDbMainClass == null) {
+                headDbMainClass = Class.forName("com.arcaniax.headdatabase.Main");
+            }
+            var apiMethod = headDbMainClass.getMethod("getHead", String.class);
             var pluginObj = org.bukkit.Bukkit.getPluginManager().getPlugin("HeadDatabase");
             return (ItemStack) apiMethod.invoke(pluginObj, id);
         } catch (Exception e) {
@@ -142,21 +171,17 @@ public class ItemResolver {
         return null;
     }
 
-    // 限制 base64 段只能含 SHA-1 風格的純十六進位（textures.minecraft.net path 的合法格式）。
-    // 既能防 path traversal（`../`、`@`、`:` 等都會被擋）也能擋 PAPI 拼接出的怪字串造成意外網域跳轉。
-    private static final java.util.regex.Pattern TEXTURE_HASH = java.util.regex.Pattern.compile("[A-Fa-f0-9]{16,128}");
-
     private ItemStack resolveBase64Head(String base64) {
-        if (base64 == null || !TEXTURE_HASH.matcher(base64).matches()) {
-            plugin.getLogger().fine("Rejected invalid base64 head id: " + (base64 == null ? "null" : base64.substring(0, Math.min(20, base64.length())) + "..."));
-            return null;
-        }
         try {
+            URI skinTexture = resolveSkinTextureUri(base64);
+            if (skinTexture == null) {
+                return null;
+            }
             var urlClass = Class.forName("org.bukkit.profile.PlayerProfile");
             var server = plugin.getServer();
             var profile = server.createProfile(UUID.randomUUID());
             var textures = profile.getTextures();
-            var url = URI.create("https://textures.minecraft.net/texture/" + base64).toURL();
+            var url = skinTexture.toURL();
             textures.setSkin(url);
             profile.setTextures(textures);
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -171,6 +196,58 @@ public class ItemResolver {
             plugin.getLogger().fine("Failed to create base64 head: " + base64.substring(0, Math.min(20, base64.length())) + "...");
         }
         return null;
+    }
+
+    static URI resolveSkinTextureUri(String encodedTexture) {
+        if (encodedTexture == null || encodedTexture.isBlank()) {
+            return null;
+        }
+        String value = encodedTexture.trim();
+        if (TEXTURE_HASH.matcher(value).matches()) {
+            return URI.create("https://" + TEXTURE_HOST + "/texture/" + value);
+        }
+        try {
+            byte[] decoded = decodeBase64(value);
+            JsonObject root = new JsonParser().parse(new String(decoded, StandardCharsets.UTF_8)).getAsJsonObject();
+            JsonObject textures = root.getAsJsonObject("textures");
+            JsonObject skin = textures != null ? textures.getAsJsonObject("SKIN") : null;
+            if (skin == null || !skin.has("url")) {
+                return null;
+            }
+            return validateTextureUrl(skin.get("url").getAsString());
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static byte[] decodeBase64(String value) {
+        try {
+            return Base64.getDecoder().decode(value);
+        } catch (IllegalArgumentException ignored) {
+            return Base64.getUrlDecoder().decode(value);
+        }
+    }
+
+    private static URI validateTextureUrl(String value) {
+        URI source = URI.create(value);
+        String scheme = source.getScheme();
+        if ((scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")))
+                || !TEXTURE_HOST.equalsIgnoreCase(source.getHost())
+                || source.getPort() != -1
+                || source.getUserInfo() != null
+                || source.getQuery() != null
+                || source.getFragment() != null) {
+            return null;
+        }
+        String path = source.getPath();
+        if (path == null || !path.startsWith("/texture/")) {
+            return null;
+        }
+        String textureHash = path.substring("/texture/".length());
+        if (!TEXTURE_HASH.matcher(textureHash).matches()) {
+            return null;
+        }
+        return URI.create("https://" + TEXTURE_HOST + "/texture/" + textureHash);
     }
 
     @FunctionalInterface

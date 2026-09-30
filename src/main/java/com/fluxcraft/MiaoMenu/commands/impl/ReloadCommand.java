@@ -19,8 +19,10 @@ public class ReloadCommand implements PluginCommand {
             return;
         }
         plugin.getConfigManager().loadConfig();
+        Lang.reload();
         plugin.getJavaMenuManager().loadAllMenus();
         plugin.getBedrockMenuManager().loadAllMenus();
+        plugin.getProxyManager().reload();
 
         sender.sendMessage(Lang.get("message.reloaded"));
     }

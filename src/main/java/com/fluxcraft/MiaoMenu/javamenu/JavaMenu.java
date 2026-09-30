@@ -31,6 +31,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class JavaMenu {
+    private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
+
     private final String name;
     private final String title;
     private final int size;
@@ -60,10 +62,12 @@ public class JavaMenu {
                 Math.max(config.getInt("rows", Constants.Config.DEFAULT_MENU_ROWS), Constants.Config.INVENTORY_MIN_ROWS),
                 Constants.Config.INVENTORY_MAX_ROWS
         ) * Constants.Config.INVENTORY_ROW_SIZE;
-        this.requirementBlocks = requirementService.loadBlocks(config.getConfigurationSection("requirement_blocks"));
-        this.viewRequirements = new ArrayList<>(config.getMapList("view_requirement.requirements"));
+        this.requirementBlocks = requirementService.loadBlocks(name, config.getConfigurationSection("requirement_blocks"));
+        this.viewRequirements = requirementService.readRequirementList(config.get("view_requirement.requirements"), name, "view_requirement.requirements");
         this.denyMessage = config.getString("view_requirement.deny_message");
         this.fallbackMenu = config.getString("view_requirement.fallback_menu");
+        requirementService.validateRequirementBlocks(name, requirementBlocks);
+        requirementService.validateRequirements(name, "view_requirement.requirements", requirementBlocks, viewRequirements);
         this.items = new ArrayList<>();
         this.itemsBySlot = new HashMap<>();
         loadItems(config);
@@ -284,14 +288,14 @@ public class JavaMenu {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 String lockedName = "&7" + PlaceholderUtils.parse(player, name, plugin) + " " + Lang.get("menu.locked-tag");
-                meta.displayName(LegacyComponentSerializer.legacySection().deserialize(lockedName));
+                meta.displayName(LEGACY_SECTION.deserialize(lockedName));
                 List<Component> loreComponents = new ArrayList<>();
                 lore.forEach(line -> loreComponents.add(
-                        LegacyComponentSerializer.legacySection().deserialize("&8" + PlaceholderUtils.parse(player, line, plugin))
+                        LEGACY_SECTION.deserialize("&8" + PlaceholderUtils.parse(player, line, plugin))
                 ));
                 loreComponents.add(Component.empty());
                 String lockLore = resolvedLockMessage != null ? resolvedLockMessage : Lang.get("message.item-locked");
-                loreComponents.add(LegacyComponentSerializer.legacySection().deserialize("&c" + lockLore));
+                loreComponents.add(LEGACY_SECTION.deserialize("&c" + lockLore));
                 meta.lore(loreComponents);
                 item.setItemMeta(meta);
             }
@@ -307,10 +311,10 @@ public class JavaMenu {
                     : new ItemStack(resolvedMaterial != null ? resolvedMaterial : Material.STONE);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.displayName(LegacyComponentSerializer.legacySection().deserialize(PlaceholderUtils.parse(player, name, plugin)));
+                meta.displayName(LEGACY_SECTION.deserialize(PlaceholderUtils.parse(player, name, plugin)));
                 List<Component> loreComponents = new ArrayList<>();
                 lore.forEach(line -> loreComponents.add(
-                        LegacyComponentSerializer.legacySection().deserialize(PlaceholderUtils.parse(player, line, plugin))
+                        LEGACY_SECTION.deserialize(PlaceholderUtils.parse(player, line, plugin))
                 ));
                 meta.lore(loreComponents);
                 if (customModelData > 0) {
@@ -319,6 +323,16 @@ public class JavaMenu {
                 item.setItemMeta(meta);
             }
             return item;
+        }
+
+        public boolean isLocked(Player player, RequirementService requirementService, String menuName, Map<String, RequirementBlock> requirementBlocks) {
+            RequirementResult result = evaluateRequirement(player, requirementService, menuName, requirementBlocks);
+            return result != null && !result.allowed();
+        }
+
+        public String getLockMessage(Player player, RequirementService requirementService, String menuName, Map<String, RequirementBlock> requirementBlocks) {
+            RequirementResult result = evaluateRequirement(player, requirementService, menuName, requirementBlocks);
+            return resolveLockMessage(player, plugin, result);
         }
 
         public int getSlot() {

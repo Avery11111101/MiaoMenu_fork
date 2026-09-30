@@ -55,6 +55,13 @@ public class ActionRegistry {
             action = defaultAction;
         }
         try {
+            if (plugin.getConfig().getBoolean("settings.validate-commands", false)
+                    && !InputValidator.isSafeCommandContent(content)) {
+                plugin.getLogger().warning(Lang.get("log.action.unsafe-content")
+                        .replace("{0}", content)
+                        .replace("{1}", player.getName()));
+                return;
+            }
             action.execute(player, content, plugin);
         } catch (RuntimeException e) {
             plugin.getLogger().log(Level.SEVERE, Lang.get("log.action.dispatch-failed")

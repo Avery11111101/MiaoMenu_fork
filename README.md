@@ -6,7 +6,7 @@
 > Fork：<https://github.com/Avery11111101/MiaoMenu_fork>
 > 原作：<https://github.com/Yamada0001/MiaoMenu>
 >
-### 面向 Paper / Folia / Geyser **26.1.2**（亦相容 26.2 alpha）的輕量級選單插件，同時為 Java 版與基岩版玩家提供原生互動體驗，內建 `en` 英文（預設）與 `zh_TW` 繁體中文雙語切換。
+### 面向 Paper / Folia / Geyser **26.2.x**（Java 25）的輕量級選單插件，同時為 Java 版與基岩版玩家提供原生互動體驗，內建多語系切換支援。
 
 ## 向後相容聲明（從原版 MiaoMenu 升級必看）
 

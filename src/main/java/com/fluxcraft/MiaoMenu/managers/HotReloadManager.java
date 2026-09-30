@@ -124,9 +124,13 @@ public class HotReloadManager {
         lastConfigReloadTime = currentTime;
         scheduleReload(() -> {
             plugin.getConfigManager().loadConfig();
+            Lang.reload();
             plugin.getConfigManager().checkAndRefreshMenus();
             plugin.getJavaMenuManager().loadAllMenus();
             plugin.getBedrockMenuManager().loadAllMenus();
+            if (plugin.getProxyManager() != null) {
+                plugin.getProxyManager().reload();
+            }
             plugin.getLogger().info(Lang.get("message.reloaded"));
         });
     }

@@ -10,34 +10,27 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import org.bukkit.NamespacedKey;
-import org.bukkit.Server;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
 
+import com.fluxcraft.MiaoMenu.MiaoMenu;
 import com.fluxcraft.MiaoMenu.utils.PlaceholderUtils;
 
 public class RequirementService {
-    private final Plugin plugin;
-    private final Server server;
+    private static final String INVALID_REQUIREMENT_TYPE = "__invalid_requirement__";
+
+    private final MiaoMenu plugin;
     private final Map<String, RequirementEvaluator> evaluators = new HashMap<>();
-    // 紀錄已警告過的 unknown type，避免每次 evaluate 重複洗版。
-    private final Set<String> warnedUnknownTypes = ConcurrentHashMap.newKeySet();
+    private final Set<String> reportedConfigurationErrors = ConcurrentHashMap.newKeySet();
 
-    public RequirementService(Plugin plugin) {
-        this(plugin, plugin != null ? plugin.getServer() : null);
-    }
-
-    // 測試專用建構式：直接注入 Server，避免測試需要 mock 整個 plugin 主類。
-    public RequirementService(Plugin plugin, Server server) {
+    public RequirementService(MiaoMenu plugin) {
         this.plugin = plugin;
-        this.server = server;
         registerDefaults();
     }
 
@@ -45,6 +38,7 @@ public class RequirementService {
         register("permission", this::evaluatePermission);
         register("placeholder_equals", this::evaluatePlaceholderEquals);
         register("placeholder-not-equals", this::evaluatePlaceholderNotEquals);
+        register("placeholder_not_equals", this::evaluatePlaceholderNotEquals);
         register("placeholder_contains", this::evaluatePlaceholderContains);
         register("advancement", this::evaluateAdvancement);
         register("progress", this::evaluateProgress);
@@ -60,20 +54,87 @@ public class RequirementService {
     }
 
     public Map<String, RequirementBlock> loadBlocks(ConfigurationSection section) {
+        return loadBlocks("<unknown>", section);
+    }
+
+    public Map<String, RequirementBlock> loadBlocks(String menuName, ConfigurationSection section) {
         if (section == null) {
             return Collections.emptyMap();
         }
         Map<String, RequirementBlock> blocks = new HashMap<>();
         for (String key : section.getKeys(false)) {
-            List<Map<?, ?>> requirements = asMapList(section.getMapList(key + ".requirements"));
+            Object configuredRequirements = section.get(key + ".requirements");
+            List<Map<?, ?>> requirements = readRequirementList(
+                    configuredRequirements,
+                    menuName,
+                    "requirement_blocks." + key + ".requirements"
+            );
             String denyMessage = section.getString(key + ".deny_message");
             String fallbackMenu = section.getString(key + ".fallback_menu");
-            if (requirements.isEmpty()) {
-                requirements = asMapList(section.getMapList(key));
+            if (configuredRequirements == null && section.isList(key)) {
+                requirements = readRequirementList(section.get(key), menuName, "requirement_blocks." + key);
             }
             blocks.put(key, new RequirementBlock(key, requirements, denyMessage, fallbackMenu));
         }
         return Collections.unmodifiableMap(blocks);
+    }
+
+    public List<Map<?, ?>> readRequirementList(Object configuredValue, String menuName, String location) {
+        if (configuredValue == null) {
+            return Collections.emptyList();
+        }
+        if (!(configuredValue instanceof List<?> rawList)) {
+            reportConfigurationError(menuName, location, "requirements must be a list of maps");
+            return invalidRequirementList();
+        }
+
+        List<Map<?, ?>> requirements = new ArrayList<>();
+        for (Object element : rawList) {
+            if (!(element instanceof Map<?, ?> map)) {
+                reportConfigurationError(menuName, location, "each requirement must be a map");
+                return invalidRequirementList();
+            }
+            requirements.add(map);
+        }
+        return Collections.unmodifiableList(requirements);
+    }
+
+    public boolean validateRequirementBlocks(String menuName, Map<String, RequirementBlock> blocks) {
+        boolean valid = true;
+        for (RequirementBlock block : blocks.values()) {
+            valid &= validateRequirements(menuName, "requirement_blocks." + block.key() + ".requirements", blocks, block.requirements());
+        }
+        return valid;
+    }
+
+    public boolean validateRequirements(
+            String menuName,
+            String location,
+            Map<String, RequirementBlock> blocks,
+            List<Map<?, ?>> requirements
+    ) {
+        boolean valid = true;
+        for (int index = 0; index < requirements.size(); index++) {
+            String error = getValidationError(requirements.get(index), blocks);
+            if (error != null) {
+                reportConfigurationError(menuName, location + "[" + index + "]", error);
+                valid = false;
+            }
+        }
+        return valid;
+    }
+
+    public boolean validateConditionGroup(
+            String menuName,
+            String location,
+            Map<String, RequirementBlock> blocks,
+            ConditionGroup group
+    ) {
+        boolean valid = validateRequirements(menuName, location + ".requirements", blocks, group.requirements());
+        for (int index = 0; index < group.children().size(); index++) {
+            valid &= validateConditionGroup(menuName, location + ".children[" + index + "]", blocks, group.children().get(index));
+        }
+        return valid;
     }
 
     public RequirementResult evaluate(Player player, String menuName, Map<String, RequirementBlock> blocks, List<Map<?, ?>> requirements) {
@@ -89,12 +150,17 @@ public class RequirementService {
         ConditionGroup.Operator operator = group.operator();
 
         for (Map<?, ?> rawRequirement : group.requirements()) {
-            String type = getString(rawRequirement, "type", "permission");
-            RequirementEvaluator evaluator = evaluators.get(type.toLowerCase(Locale.ROOT));
-            if (evaluator == null) {
-                warnUnknownType(type);
-                continue;
+            String error = getValidationError(rawRequirement, blocks);
+            if (error != null) {
+                reportConfigurationError(menuName, "runtime condition", error);
+                String denyMessage = firstNonBlank(
+                        getString(rawRequirement, "deny_message", null),
+                        getString(rawRequirement, "lock_message", null)
+                );
+                return RequirementResult.locked(denyMessage);
             }
+            String type = getString(rawRequirement, "type", null);
+            RequirementEvaluator evaluator = evaluators.get(type.toLowerCase(Locale.ROOT));
             RequirementResult.RequirementContext ctx = new RequirementResult.RequirementContext(
                     menuName, blocks, new HashSet<>(), Collections.singletonList(rawRequirement)
             );
@@ -162,12 +228,13 @@ public class RequirementService {
 
     private RequirementResult evaluateInternal(Player player, RequirementResult.RequirementContext context) {
         for (Map<?, ?> rawRequirement : context.requirements()) {
-            String type = getString(rawRequirement, "type", "permission");
-            RequirementEvaluator evaluator = evaluators.get(type.toLowerCase(Locale.ROOT));
-            if (evaluator == null) {
-                warnUnknownType(type);
-                continue;
+            String error = getValidationError(rawRequirement, context.blocks());
+            if (error != null) {
+                reportConfigurationError(context.menuName(), "runtime requirement", error);
+                return RequirementResult.deny(null, null);
             }
+            String type = getString(rawRequirement, "type", null);
+            RequirementEvaluator evaluator = evaluators.get(type.toLowerCase(Locale.ROOT));
             RequirementResult result = evaluator.evaluate(player, withCurrentRequirement(context, rawRequirement));
             if (!result.allowed()) {
                 String denyMessage = firstNonBlank(result.denyMessage(), getString(rawRequirement, "deny_message", null));
@@ -176,18 +243,6 @@ public class RequirementService {
             }
         }
         return RequirementResult.allow();
-    }
-
-    private void warnUnknownType(String rawType) {
-        if (plugin == null || rawType == null) {
-            return;
-        }
-        String key = rawType.toLowerCase(Locale.ROOT);
-        if (warnedUnknownTypes.add(key)) {
-            plugin.getLogger().warning(
-                    com.fluxcraft.MiaoMenu.utils.Lang.get("log.requirement.unknown-type").replace("{0}", rawType)
-            );
-        }
     }
 
     private RequirementResult.RequirementContext withCurrentRequirement(RequirementResult.RequirementContext context, Map<?, ?> rawRequirement) {
@@ -201,11 +256,7 @@ public class RequirementService {
 
     private RequirementResult evaluatePermission(Player player, RequirementResult.RequirementContext context) {
         String permission = getString(context.requirements().getFirst(), "permission", null);
-        // 安全防呆：缺 permission 欄位時 fail-closed（拒絕），避免使用者漏寫欄位導致權限旁路。
-        if (permission == null) {
-            return RequirementResult.deny(null, null);
-        }
-        if (player.hasPermission(permission)) {
+        if (permission != null && !permission.isBlank() && player.hasPermission(permission)) {
             return RequirementResult.allow();
         }
         return RequirementResult.deny(null, null);
@@ -221,16 +272,22 @@ public class RequirementService {
 
     private RequirementResult evaluatePlaceholderContains(Player player, RequirementResult.RequirementContext context) {
         Map<?, ?> requirement = context.requirements().getFirst();
-        String placeholder = getString(requirement, "placeholder", "");
-        String expected = getString(requirement, "value", "");
+        String placeholder = getString(requirement, "placeholder", null);
+        String expected = getString(requirement, "value", null);
+        if (placeholder == null || placeholder.isBlank() || expected == null) {
+            return RequirementResult.deny(null, null);
+        }
         String resolved = PlaceholderUtils.parse(player, placeholder, plugin);
         return resolved.contains(expected) ? RequirementResult.allow() : RequirementResult.deny(null, null);
     }
 
     private RequirementResult comparePlaceholder(Player player, RequirementResult.RequirementContext context, Comparison comparison) {
         Map<?, ?> requirement = context.requirements().getFirst();
-        String placeholder = getString(requirement, "placeholder", "");
-        String expected = getString(requirement, "value", "");
+        String placeholder = getString(requirement, "placeholder", null);
+        String expected = getString(requirement, "value", null);
+        if (placeholder == null || placeholder.isBlank() || expected == null) {
+            return RequirementResult.deny(null, null);
+        }
         String resolved = PlaceholderUtils.parse(player, placeholder, plugin);
         boolean matched = Objects.equals(resolved, expected);
         if (comparison == Comparison.NOT_EQUALS) {
@@ -248,7 +305,7 @@ public class RequirementService {
         if (namespacedKey == null) {
             return RequirementResult.deny(null, null);
         }
-        Advancement advancement = server != null ? server.getAdvancement(namespacedKey) : null;
+        Advancement advancement = plugin.getServer().getAdvancement(namespacedKey);
         if (advancement == null) {
             return RequirementResult.deny(null, null);
         }
@@ -259,10 +316,13 @@ public class RequirementService {
     private RequirementResult evaluateProgress(Player player, RequirementResult.RequirementContext context) {
         Map<?, ?> requirement = context.requirements().getFirst();
         String objectiveName = getString(requirement, "objective", null);
-        if (objectiveName == null) {
+        if (objectiveName == null || objectiveName.isBlank()) {
             return RequirementResult.deny(null, null);
         }
         Integer threshold = getInteger(requirement, "value");
+        if (requirement.containsKey("value") && threshold == null) {
+            return RequirementResult.deny(null, null);
+        }
         Integer currentScore = getScore(player, requirement);
         if (currentScore == null) {
             return RequirementResult.deny(null, null);
@@ -308,17 +368,13 @@ public class RequirementService {
 
     private Integer getScore(Player player, Map<?, ?> requirement) {
         String objectiveName = getString(requirement, "objective", null);
-        if (objectiveName == null) {
+        if (objectiveName == null || objectiveName.isBlank()) {
             return null;
         }
         Scoreboard scoreboard = player.getScoreboard();
         Objective objective = scoreboard.getObjective(objectiveName);
         if (objective == null) {
-            ScoreboardManager scoreboardManager = server != null ? server.getScoreboardManager() : null;
-            if (scoreboardManager == null) {
-                return null;
-            }
-            objective = scoreboardManager.getMainScoreboard().getObjective(objectiveName);
+            objective = plugin.getServer().getScoreboardManager().getMainScoreboard().getObjective(objectiveName);
         }
         if (objective == null) {
             return null;
@@ -342,17 +398,101 @@ public class RequirementService {
 
     private RequirementResult evaluateBlockReference(Player player, RequirementResult.RequirementContext context) {
         String blockKey = getString(context.requirements().getFirst(), "block", null);
-        if (blockKey == null) {
+        if (blockKey == null || blockKey.isBlank()) {
             return RequirementResult.deny(null, null);
         }
         return evaluateBlock(player, context, blockKey);
     }
 
-    private List<Map<?, ?>> asMapList(List<Map<?, ?>> source) {
-        if (source == null) {
-            return Collections.emptyList();
+    private String getValidationError(Map<?, ?> requirement, Map<String, RequirementBlock> blocks) {
+        if (requirement == null || requirement.isEmpty()) {
+            return "requirement cannot be empty";
         }
-        return new ArrayList<>(source);
+        String type = getString(requirement, "type", null);
+        if (type == null || type.isBlank()) {
+            return "missing required type";
+        }
+        String normalizedType = type.toLowerCase(Locale.ROOT);
+        if (INVALID_REQUIREMENT_TYPE.equals(normalizedType)) {
+            return "invalid requirement list";
+        }
+        if (!evaluators.containsKey(normalizedType)) {
+            return "unknown requirement type '" + type + "'";
+        }
+
+        return switch (normalizedType) {
+            case "permission" -> hasNonBlankString(requirement, "permission") ? null : "missing required permission";
+            case "placeholder_equals", "placeholder-not-equals", "placeholder_not_equals", "placeholder_contains" ->
+                    hasNonBlankString(requirement, "placeholder") && hasValue(requirement, "value")
+                            ? null
+                            : "placeholder requirements need placeholder and value";
+            case "advancement" -> validateAdvancement(requirement);
+            case "progress" -> validateProgress(requirement);
+            case "score_gte", "score_lte", "score_equals" ->
+                    hasNonBlankString(requirement, "objective") && getInteger(requirement, "value") != null
+                            ? null
+                            : "score requirements need objective and integer value";
+            case "score_range" -> validateScoreRange(requirement);
+            case "block" -> validateBlockReference(requirement, blocks);
+            default -> null;
+        };
+    }
+
+    private String validateAdvancement(Map<?, ?> requirement) {
+        String advancement = getString(requirement, "advancement", null);
+        if (advancement == null || advancement.isBlank()) {
+            return "missing required advancement";
+        }
+        return NamespacedKey.fromString(advancement) != null ? null : "invalid advancement key '" + advancement + "'";
+    }
+
+    private String validateProgress(Map<?, ?> requirement) {
+        if (!hasNonBlankString(requirement, "objective")) {
+            return "missing required objective";
+        }
+        if (requirement.containsKey("value") && getInteger(requirement, "value") == null) {
+            return "progress value must be an integer";
+        }
+        return null;
+    }
+
+    private String validateScoreRange(Map<?, ?> requirement) {
+        Integer min = getInteger(requirement, "min");
+        Integer max = getInteger(requirement, "max");
+        if (!hasNonBlankString(requirement, "objective") || min == null || max == null) {
+            return "score_range needs objective, integer min, and integer max";
+        }
+        return min <= max ? null : "score_range min cannot exceed max";
+    }
+
+    private String validateBlockReference(Map<?, ?> requirement, Map<String, RequirementBlock> blocks) {
+        String blockKey = getString(requirement, "block", null);
+        if (blockKey == null || blockKey.isBlank()) {
+            return "missing required block";
+        }
+        return blocks != null && blocks.containsKey(blockKey) ? null : "unknown requirement block '" + blockKey + "'";
+    }
+
+    private boolean hasNonBlankString(Map<?, ?> requirement, String key) {
+        Object value = requirement.get(key);
+        return value instanceof String string && !string.isBlank();
+    }
+
+    private boolean hasValue(Map<?, ?> requirement, String key) {
+        return requirement.containsKey(key) && requirement.get(key) != null;
+    }
+
+    private List<Map<?, ?>> invalidRequirementList() {
+        return Collections.singletonList(Map.of("type", INVALID_REQUIREMENT_TYPE));
+    }
+
+    private void reportConfigurationError(String menuName, String location, String error) {
+        String identifier = menuName + "|" + location + "|" + error;
+        if (!reportedConfigurationErrors.add(identifier)) {
+            return;
+        }
+        Logger logger = plugin.getLogger();
+        logger.warning("Invalid requirement in menu '" + menuName + "' at " + location + ": " + error);
     }
 
     private String getString(Map<?, ?> map, String key, String fallback) {

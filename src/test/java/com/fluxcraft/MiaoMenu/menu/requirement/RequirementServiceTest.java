@@ -3,6 +3,7 @@ package com.fluxcraft.MiaoMenu.menu.requirement;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.advancement.Advancement;
@@ -19,14 +20,13 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.bukkit.plugin.Plugin;
-
+import com.fluxcraft.MiaoMenu.MiaoMenu;
 import com.fluxcraft.MiaoMenu.javamenu.JavaMenu;
 
 class RequirementServiceTest {
     @Test
     void permissionRequirementAllowsPlayerWithPermission() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("miao.test")).thenReturn(true);
         RequirementService service = new RequirementService(plugin);
@@ -41,7 +41,7 @@ class RequirementServiceTest {
 
     @Test
     void permissionRequirementDeniesPlayerWithoutPermission() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("miao.test")).thenReturn(false);
         RequirementService service = new RequirementService(plugin);
@@ -55,8 +55,56 @@ class RequirementServiceTest {
     }
 
     @Test
+    void missingPermissionFailsClosed() {
+        MiaoMenu plugin = mock(MiaoMenu.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger(getClass().getName()));
+        RequirementService service = new RequirementService(plugin);
+
+        RequirementResult result = service.evaluate(mock(Player.class), "test", Map.of(), List.of(Map.of(
+                "type", "permission"
+        )));
+
+        assertFalse(result.allowed());
+    }
+
+    @Test
+    void unknownRequirementTypeFailsClosed() {
+        MiaoMenu plugin = mock(MiaoMenu.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger(getClass().getName()));
+        RequirementService service = new RequirementService(plugin);
+
+        RequirementResult result = service.evaluate(mock(Player.class), "test", Map.of(), List.of(Map.of(
+                "type", "permission_typo",
+                "permission", "miao.test"
+        )));
+
+        assertFalse(result.allowed());
+    }
+
+    @Test
+    void invalidConditionInOrGroupFailsClosed() {
+        MiaoMenu plugin = mock(MiaoMenu.class);
+        when(plugin.getLogger()).thenReturn(Logger.getLogger(getClass().getName()));
+        Player player = mock(Player.class);
+        when(player.hasPermission("miao.test")).thenReturn(true);
+        RequirementService service = new RequirementService(plugin);
+        ConditionGroup group = new ConditionGroup(
+                ConditionGroup.Operator.OR,
+                List.of(
+                        Map.of("type", "permission_typo"),
+                        Map.of("type", "permission", "permission", "miao.test")
+                ),
+                List.of()
+        );
+
+        RequirementResult result = service.evaluateGroup(player, "test", Map.of(), group);
+
+        assertFalse(result.allowed());
+    }
+
+    @Test
     void scoreGreaterOrEqualRequirementAllowsEnoughScore() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         ScoreboardManager scoreboardManager = mock(ScoreboardManager.class);
         Scoreboard mainScoreboard = mock(Scoreboard.class);
@@ -86,7 +134,7 @@ class RequirementServiceTest {
 
     @Test
     void scoreRangeRequirementDeniesOutsideRange() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         ScoreboardManager scoreboardManager = mock(ScoreboardManager.class);
         Scoreboard mainScoreboard = mock(Scoreboard.class);
@@ -117,7 +165,7 @@ class RequirementServiceTest {
 
     @Test
     void advancementConditionAllowsWhenCompleted() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         Player player = mock(Player.class);
         Advancement advancement = mock(Advancement.class);
@@ -139,7 +187,7 @@ class RequirementServiceTest {
 
     @Test
     void advancementConditionDeniesWhenNotCompleted() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         Player player = mock(Player.class);
         Advancement advancement = mock(Advancement.class);
@@ -161,7 +209,7 @@ class RequirementServiceTest {
 
     @Test
     void advancementConditionRefreshesAfterChange() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         Player player = mock(Player.class);
         Advancement advancement = mock(Advancement.class);
@@ -189,7 +237,7 @@ class RequirementServiceTest {
 
     @Test
     void conditionGroupAndLogicRequiresAllConditions() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.a")).thenReturn(true);
         when(player.hasPermission("perm.b")).thenReturn(false);
@@ -210,7 +258,7 @@ class RequirementServiceTest {
 
     @Test
     void conditionGroupAndLogicPassesWhenAllMet() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.a")).thenReturn(true);
         when(player.hasPermission("perm.b")).thenReturn(true);
@@ -231,7 +279,7 @@ class RequirementServiceTest {
 
     @Test
     void conditionGroupOrLogicPassesWithAnyCondition() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.a")).thenReturn(false);
         when(player.hasPermission("perm.b")).thenReturn(true);
@@ -252,7 +300,7 @@ class RequirementServiceTest {
 
     @Test
     void conditionGroupOrLogicFailsWhenNoneMet() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.a")).thenReturn(false);
         when(player.hasPermission("perm.b")).thenReturn(false);
@@ -273,7 +321,7 @@ class RequirementServiceTest {
 
     @Test
     void nestedConditionGroupOrInsideAnd() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.required")).thenReturn(true);
         when(player.hasPermission("perm.opt_a")).thenReturn(false);
@@ -301,7 +349,7 @@ class RequirementServiceTest {
 
     @Test
     void rootLevelItemRequirementsAreLoadedAsConditionGroup() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         YamlConfiguration config = new YamlConfiguration();
         config.set("items.server_info.slot", 10);
         config.set("items.server_info.material", "KNOWLEDGE_BOOK");
@@ -321,7 +369,7 @@ class RequirementServiceTest {
 
     @Test
     void progressConditionDeniesWhenScoreBelowThreshold() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         org.bukkit.Server server = mock(org.bukkit.Server.class);
         ScoreboardManager scoreboardManager = mock(ScoreboardManager.class);
         Scoreboard mainScoreboard = mock(Scoreboard.class);
@@ -351,7 +399,7 @@ class RequirementServiceTest {
 
     @Test
     void hotReloadDoesNotAffectExistingMenuReferences() {
-        Plugin plugin = mock(Plugin.class);
+        MiaoMenu plugin = mock(MiaoMenu.class);
         Player player = mock(Player.class);
         when(player.hasPermission("perm.stable")).thenReturn(true);
 

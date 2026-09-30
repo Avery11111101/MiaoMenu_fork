@@ -13,6 +13,8 @@ message:
   invalid-player: "&c✦ 尋無此人，或他已遠去（離線）。"
   requirement-denied: "&c✦ 目前條件不足，無法執行該選單操作。"
   item-locked: "&c✦ 該功能尚未解鎖。"
+  item-locked-suffix: " &8[未解鎖]"
+  bedrock-locked-prefix: " &8[未解鎖] &7"
   unsafe-input: "&c✦ 輸入內容不符合安全規則，操作已攔截。"
   rate-limited: "&c✦ 操作過於頻繁，請稍後再試。"
   config-update-warning: "&e✦ 偵測到舊版設定，正在嘗試自動更迭..."

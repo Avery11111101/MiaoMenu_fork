@@ -1,15 +1,17 @@
 package com.fluxcraft.MiaoMenu.bedrockmenu;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import com.fluxcraft.MiaoMenu.MiaoMenu;
+import com.fluxcraft.MiaoMenu.constants.Constants.ConfigKeys;
 import com.fluxcraft.MiaoMenu.menu.requirement.ConditionGroup;
 import com.fluxcraft.MiaoMenu.menu.requirement.RequirementBlock;
 import com.fluxcraft.MiaoMenu.menu.requirement.RequirementResult;
@@ -18,40 +20,60 @@ import com.fluxcraft.MiaoMenu.utils.Lang;
 import com.fluxcraft.MiaoMenu.utils.PlaceholderUtils;
 
 public class BedrockMenu {
-    private static class ConfigKeys {
-        public static final String MENU_ITEMS = "menu.items";
-        public static final String MENU_TITLE = "menu.title";
-        public static final String DEFAULT_TITLE = "Menu";
-        public static final String TEXT = "text";
-        public static final String ICON = "icon";
-        public static final String ICON_TYPE = "icon_type";
-        public static final String COMMAND = "command";
-        public static final String EXECUTE_AS = "execute_as";
-        public static final String DEFAULT_ICON_TYPE = "path";
-        public static final String ICON_TYPE_URL = "url";
-        public static final String UNSUPPORTED_ON_BEDROCK = "unsupported_on_bedrock";
+    private static final Pattern STRIP_COLOR = Pattern.compile("§[0-9a-fk-orA-FK-OR]");
+
+    private static volatile boolean cumulusReflectionInit = false;
+    private static volatile Class<?> cumulusSimpleFormClass;
+    private static volatile Class<?> cumulusFormImageClass;
+    private static volatile Object cumulusUrlType;
+    private static volatile Object cumulusPathType;
+
+    private static void initCumulusReflection() {
+        if (cumulusReflectionInit) return;
+        synchronized (BedrockMenu.class) {
+            if (cumulusReflectionInit) return;
+            try {
+                cumulusSimpleFormClass = Class.forName("org.geysermc.cumulus.form.SimpleForm");
+                cumulusFormImageClass = Class.forName("org.geysermc.cumulus.util.FormImage");
+                Class<?> typeEnum = Class.forName("org.geysermc.cumulus.util.FormImage$Type");
+                for (Object constant : typeEnum.getEnumConstants()) {
+                    if ("URL".equals(constant.toString())) {
+                        cumulusUrlType = constant;
+                    } else if ("PATH".equals(constant.toString())) {
+                        cumulusPathType = constant;
+                    }
+                }
+            } catch (ClassNotFoundException ignored) {
+            }
+            cumulusReflectionInit = true;
+        }
     }
 
     private final String name;
-    private final FileConfiguration config;
-    private final List<BedrockMenuItem> menuItems = new ArrayList<>();
+    private final YamlConfiguration config;
     private final MiaoMenu plugin;
     private final RequirementService requirementService;
+    private final List<BedrockMenuItem> menuItems = new ArrayList<>();
     private final Map<String, RequirementBlock> requirementBlocks;
     private final List<Map<?, ?>> viewRequirements;
     private final String denyMessage;
     private final String fallbackMenu;
 
-    public BedrockMenu(String name, FileConfiguration config, MiaoMenu plugin, RequirementService requirementService) {
+    public BedrockMenu(String name, YamlConfiguration config, MiaoMenu plugin, RequirementService requirementService) {
         this.name = name;
         this.config = config;
         this.plugin = plugin;
         this.requirementService = requirementService;
-        ConfigurationSection blocksSection = config.getConfigurationSection("requirement_blocks");
-        requirementBlocks = requirementService.loadBlocks(blocksSection);
-        viewRequirements = new ArrayList<>(config.getMapList("view_requirement.requirements"));
+        this.requirementBlocks = requirementService.loadBlocks(name, config.getConfigurationSection("requirement_blocks"));
+        viewRequirements = requirementService.readRequirementList(
+                config.get("view_requirement.requirements"),
+                name,
+                "view_requirement.requirements"
+        );
         denyMessage = config.getString("view_requirement.deny_message");
         fallbackMenu = config.getString("view_requirement.fallback_menu");
+        requirementService.validateRequirementBlocks(name, requirementBlocks);
+        requirementService.validateRequirements(name, "view_requirement.requirements", requirementBlocks, viewRequirements);
         loadMenuItems();
     }
 
@@ -69,7 +91,8 @@ public class BedrockMenu {
             return;
         }
         String defaultText = getDefaultText();
-        for (Object itemObj : items) {
+        for (int index = 0; index < items.size(); index++) {
+            Object itemObj = items.get(index);
             if (itemObj instanceof Map<?, ?> map) {
                 String text = map.get(ConfigKeys.TEXT) != null ? map.get(ConfigKeys.TEXT).toString() : defaultText;
                 String icon = map.get(ConfigKeys.ICON) != null ? map.get(ConfigKeys.ICON).toString() : "";
@@ -80,25 +103,25 @@ public class BedrockMenu {
                 Object unsupportedRaw = map.get(ConfigKeys.UNSUPPORTED_ON_BEDROCK);
                 boolean unsupportedOnBedrock = unsupportedRaw instanceof Boolean b ? b
                         : "true".equalsIgnoreCase(String.valueOf(unsupportedRaw));
-                ConditionGroup conditionGroup = loadConditionGroup(map);
+                ConditionGroup conditionGroup = loadConditionGroup(map, "menu.items[" + index + "]");
+                requirementService.validateConditionGroup(name, "menu.items[" + index + "].conditions", requirementBlocks, conditionGroup);
                 menuItems.add(new BedrockMenuItem(text, icon, iconType, command, executeAs, conditionGroup, lockMessage, unsupportedOnBedrock));
             }
         }
     }
 
-    private ConditionGroup loadConditionGroup(Map<?, ?> map) {
-        if (map.get("conditions") instanceof Map<?, ?> conditionsMap) {
-            return ConditionGroup.fromYaml(conditionsMap);
-        }
-        List<Map<?, ?>> legacyConditions = new ArrayList<>();
-        Object conditionValue = map.get("item_conditions");
-        if (conditionValue instanceof List<?> rawList) {
-            for (Object element : rawList) {
-                if (element instanceof Map<?, ?> conditionMap) {
-                    legacyConditions.add(conditionMap);
-                }
+    private ConditionGroup loadConditionGroup(Map<?, ?> map, String location) {
+        if (map.containsKey("conditions")) {
+            if (map.get("conditions") instanceof Map<?, ?> conditionsMap) {
+                return ConditionGroup.fromYaml(conditionsMap);
             }
+            throw new IllegalArgumentException(location + ".conditions must be a map");
         }
+        List<Map<?, ?>> legacyConditions = requirementService.readRequirementList(
+                map.get("item_conditions"),
+                name,
+                location + ".item_conditions"
+        );
         return ConditionGroup.fromLegacyConditions(legacyConditions);
     }
 
@@ -107,24 +130,27 @@ public class BedrockMenu {
     }
 
     public Object buildForm(Player player) {
+        initCumulusReflection();
+        if (cumulusSimpleFormClass == null) {
+            return null;
+        }
         try {
-            Class<?> simpleFormClass = Class.forName("org.geysermc.cumulus.form.SimpleForm");
-            Class<?> formImageClass = Class.forName("org.geysermc.cumulus.util.FormImage");
-            Object builder = simpleFormClass.getMethod("builder").invoke(null);
+            Object builder = cumulusSimpleFormClass.getMethod("builder").invoke(null);
             String title = PlaceholderUtils.parse(player, getMenuTitle(), plugin);
             builder.getClass().getMethod("title", String.class).invoke(builder, title);
             builder.getClass().getMethod("content", String.class).invoke(builder, "");
             for (BedrockMenuItem item : menuItems) {
-                boolean locked = item.isLocked(player, requirementService, name, requirementBlocks);
+                RequirementResult requirementResult = item.evaluateRequirement(player, requirementService, name, requirementBlocks);
+                boolean locked = !requirementResult.allowed();
                 String buttonText;
                 if (locked) {
                     String originalText = PlaceholderUtils.parse(player, item.text(), plugin);
-                    buttonText = Lang.get("menu.locked-tag") + " §7" + originalText.replaceAll("§[0-9a-fk-or]", "");
+                    buttonText = Lang.get("message.bedrock-locked-prefix") + STRIP_COLOR.matcher(originalText).replaceAll("");
                 } else {
                     buttonText = PlaceholderUtils.parse(player, item.text(), plugin);
                 }
                 if (!locked && item.hasIcon()) {
-                    addIconButton(builder, formImageClass, buttonText, item);
+                    addIconButton(builder, cumulusFormImageClass, buttonText, item);
                 } else {
                     builder.getClass().getMethod("button", String.class).invoke(builder, buttonText);
                 }
@@ -145,25 +171,11 @@ public class BedrockMenu {
     }
 
     private Object parseImageType(String typeString) {
-        try {
-            Class<?> typeEnum = Class.forName("org.geysermc.cumulus.util.FormImage$Type");
-            Object[] constants = typeEnum.getEnumConstants();
-            if (ConfigKeys.ICON_TYPE_URL.equalsIgnoreCase(typeString)) {
-                for (Object constant : constants) {
-                    if (constant.toString().equals("URL")) {
-                        return constant;
-                    }
-                }
-            }
-            for (Object constant : constants) {
-                if (constant.toString().equals("PATH")) {
-                    return constant;
-                }
-            }
-            return constants[0];
-        } catch (ClassNotFoundException e) {
-            return null;
+        initCumulusReflection();
+        if (cumulusUrlType != null && ConfigKeys.ICON_TYPE_URL.equalsIgnoreCase(typeString)) {
+            return cumulusUrlType;
         }
+        return cumulusPathType;
     }
 
     public RequirementResult checkViewRequirement(Player player) {
@@ -192,6 +204,18 @@ public class BedrockMenu {
             String lockMessage,
             boolean unsupportedOnBedrock
     ) {
+        public BedrockMenuItem(
+                String text,
+                String icon,
+                String iconType,
+                String command,
+                String executeAs,
+                ConditionGroup conditionGroup,
+                String lockMessage
+        ) {
+            this(text, icon, iconType, command, executeAs, conditionGroup, lockMessage, false);
+        }
+
         public BedrockMenuItem {
             if (text == null) {
                 text = "";
@@ -211,14 +235,33 @@ public class BedrockMenu {
         }
 
         public boolean isLocked(Player player, RequirementService requirementService, String menuName, Map<String, RequirementBlock> requirementBlocks) {
+            return !evaluateRequirement(player, requirementService, menuName, requirementBlocks).allowed();
+        }
+
+        public RequirementResult evaluateRequirement(
+                Player player,
+                RequirementService requirementService,
+                String menuName,
+                Map<String, RequirementBlock> requirementBlocks
+        ) {
             if (conditionGroup == null) {
-                return false;
+                return RequirementResult.allow();
             }
             if (conditionGroup.requirements().isEmpty() && conditionGroup.children().isEmpty()) {
-                return false;
+                return RequirementResult.allow();
             }
-            RequirementResult result = requirementService.evaluateGroup(player, menuName, requirementBlocks, conditionGroup);
-            return !result.allowed();
+            return requirementService.evaluateGroup(player, menuName, requirementBlocks, conditionGroup);
+        }
+
+        public String getLockMessage(Player player, MiaoMenu plugin, RequirementResult requirementResult) {
+            String message = requirementResult.denyMessage();
+            if (message == null || message.isBlank()) {
+                message = lockMessage;
+            }
+            if (message == null || message.isBlank()) {
+                message = Lang.get("message.item-locked");
+            }
+            return PlaceholderUtils.parse(player, message, plugin);
         }
 
         public String getCommand() {

@@ -107,7 +107,7 @@ public class JavaMenuListener implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof JavaMenu.MenuHolder) {
+        if (event.getView().getTopInventory().getHolder() instanceof JavaMenu.MenuHolder) {
             event.setCancelled(true);
         }
     }

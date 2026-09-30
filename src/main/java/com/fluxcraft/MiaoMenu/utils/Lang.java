@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -26,7 +29,7 @@ public final class Lang {
     // volatile：UpdateChecker 的 HttpClient async 回呼、Floodgate Netty 緒等都會呼叫 Lang.get；
     // 若主緒 Lang.load 正在替換 messages，非主緒可能讀到 partially published 的 reference 或舊值。
     private static volatile FileConfiguration messages;
-    private static volatile String currentLanguage = "en";
+    private static volatile String currentLanguage = "zh_TW";
 
     private Lang() {
     }
@@ -36,8 +39,20 @@ public final class Lang {
      */
     public static void init(Plugin plugin) {
         Lang.plugin = plugin;
+        saveBundledLanguages();
+        String configuredLang = plugin.getConfig().getString("language",
+                plugin.getConfig().getString("settings.lang", "zh_TW"));
+        load(configuredLang);
+    }
+
+    private static void saveBundledLanguages() {
         saveDefault("lang/en.yml");
         saveDefault("lang/zh_TW.yml");
+        saveDefault("lang/en-us.yml");
+        saveDefault("lang/zh-cn.yml");
+        saveDefault("lang/zh-tw.yml");
+        saveDefault("lang/ja-jp.yml");
+        saveDefault("lang/vi-vn.yml");
     }
 
     /**
@@ -49,12 +64,11 @@ public final class Lang {
             return;
         }
         if (language == null || language.isEmpty()) {
-            language = "en";
+            language = "zh_TW";
         }
-        saveDefault("lang/en.yml");
-        saveDefault("lang/zh_TW.yml");
+        saveBundledLanguages();
 
-        File file = new File(plugin.getDataFolder(), "lang/" + language + ".yml");
+        File file = resolveLanguageFile(language);
         if (!file.exists()) {
             plugin.getLogger().warning("找不到語言檔 lang/" + language + ".yml，改用 en。");
             file = new File(plugin.getDataFolder(), "lang/en.yml");
@@ -80,6 +94,28 @@ public final class Lang {
         messages = cfg;
         currentLanguage = language;
         plugin.getLogger().info("已載入語言檔：" + file.getName() + "（current=" + currentLanguage + "）");
+    }
+
+    private static File resolveLanguageFile(String language) {
+        File exact = new File(plugin.getDataFolder(), "lang/" + language + ".yml");
+        if (exact.exists()) {
+            return exact;
+        }
+        // 嘗試常見別名轉換
+        String alt = switch (language.toLowerCase()) {
+            case "zh_tw", "zh-tw" -> "zh_TW";
+            case "en", "en_us", "en-us" -> "en";
+            default -> language;
+        };
+        File altFile = new File(plugin.getDataFolder(), "lang/" + alt + ".yml");
+        if (altFile.exists()) {
+            return altFile;
+        }
+        return exact;
+    }
+
+    public static void reload() {
+        load(currentLanguage);
     }
 
     public static String getCurrentLanguage() {
@@ -134,5 +170,20 @@ public final class Lang {
             return key;
         }
         return SECTION.serialize(AMPERSAND.deserialize(message));
+    }
+
+    public static Map<String, String> getStringSection(String prefix) {
+        Map<String, String> result = new LinkedHashMap<>();
+        if (messages != null) {
+            ConfigurationSection section = messages.getConfigurationSection(prefix);
+            if (section != null) {
+                for (String key : section.getKeys(false)) {
+                    if (section.isString(key)) {
+                        result.put(key, section.getString(key));
+                    }
+                }
+            }
+        }
+        return result;
     }
 }

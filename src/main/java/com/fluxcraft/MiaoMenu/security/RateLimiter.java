@@ -1,20 +1,20 @@
 package com.fluxcraft.MiaoMenu.security;
 
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class RateLimiter {
-    private static final long SWEEP_INTERVAL_MILLIS = 60_000L;
-    private static final int EXPIRY_MULTIPLIER = 5;
+    // 每隔這麼多次造訪觸發一次過期窗口掃描，避免無界增長的同時不增加每次調用成本
+    private static final int CLEANUP_INTERVAL = 256;
 
     private final long windowMillis;
     private final int maxEvents;
     private final Map<UUID, Window> windows = new ConcurrentHashMap<>();
-    private final AtomicLong lastSweep = new AtomicLong(0L);
+    private final AtomicInteger accessCount = new AtomicInteger();
 
     public RateLimiter(Duration window, int maxEvents) {
         this.windowMillis = window.toMillis();
@@ -23,51 +23,47 @@ public final class RateLimiter {
 
     public boolean allow(UUID uuid) {
         long now = System.currentTimeMillis();
-        sweepExpiredIfDue(now);
-        // 原本是 get→put 兩步、非原子。Folia 多 region 緒（或 Paper 非主緒事件）並發點擊時，
-        // 兩個緒會各自讀到舊 count、各自 put 覆蓋對方，造成 rate limit 被穩定繞過。
-        // 改用 compute 把「讀舊值 → 判超限 → 寫新值」三步收進一個原子段落。
-        // ConcurrentHashMap.compute 的 lambda 對同一 key 保證序列化執行。
-        boolean[] allowed = new boolean[]{true};
-        windows.compute(uuid, (k, current) -> {
+        maybeCleanup(now);
+
+        AtomicBoolean allowed = new AtomicBoolean(false);
+        windows.compute(uuid, (_, current) -> {
             if (current == null || now - current.windowStart() >= windowMillis) {
+                allowed.set(true);
                 return new Window(now, 1);
             }
             if (current.count() >= maxEvents) {
-                allowed[0] = false;
                 return current;
             }
+            allowed.set(true);
             return new Window(current.windowStart(), current.count() + 1);
         });
-        return allowed[0];
+        return allowed.get();
+    }
+
+    // 移除指定玩家的限流窗口，供玩家離線事件調用
+    public void clear(UUID uuid) {
+        windows.remove(uuid);
     }
 
     public void remove(UUID uuid) {
-        windows.remove(uuid);
+        clear(uuid);
     }
 
     public void clearAll() {
         windows.clear();
-        lastSweep.set(0L);
     }
 
-    // 被動清理：每分鐘最多掃一次，移除已超過 5 倍視窗時間的舊條目，避免閒置玩家累積記憶體。
-    private void sweepExpiredIfDue(long now) {
-        long previous = lastSweep.get();
-        if (now - previous < SWEEP_INTERVAL_MILLIS) {
+    // 機會式回收：僅在固定造訪間隔觸發，刪除所有已過期窗口。
+    // 使用 remove(key, value) 按值比對刪除，避免誤刪並發更新後的新窗口。
+    private void maybeCleanup(long now) {
+        if (accessCount.incrementAndGet() % CLEANUP_INTERVAL != 0) {
             return;
         }
-        if (!lastSweep.compareAndSet(previous, now)) {
-            return;
-        }
-        long threshold = windowMillis * EXPIRY_MULTIPLIER;
-        Iterator<Map.Entry<UUID, Window>> it = windows.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<UUID, Window> entry = it.next();
-            if (now - entry.getValue().windowStart() >= threshold) {
-                it.remove();
+        windows.forEach((uuid, window) -> {
+            if (now - window.windowStart() >= windowMillis) {
+                windows.remove(uuid, window);
             }
-        }
+        });
     }
 
     private record Window(long windowStart, int count) {
