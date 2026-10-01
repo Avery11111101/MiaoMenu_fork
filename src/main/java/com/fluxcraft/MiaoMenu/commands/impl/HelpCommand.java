@@ -129,6 +129,6 @@ public class HelpCommand implements PluginCommand {
 
     /** 給 CommandManager.loadHelpDescriptions 用的固定子指令順序。 */
     public static List<String> defaultCommandOrder() {
-        return Arrays.asList("open", "reload", "import", "lang", "about", "whoami", "help");
+        return Arrays.asList("open", "reload", "import", "lang", "update", "about", "whoami", "help");
     }
 }

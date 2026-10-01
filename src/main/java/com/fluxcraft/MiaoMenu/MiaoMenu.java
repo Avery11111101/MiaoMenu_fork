@@ -1,5 +1,6 @@
 package com.fluxcraft.MiaoMenu;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Locale;
@@ -38,8 +39,8 @@ import com.fluxcraft.MiaoMenu.menu.requirement.RequirementFeedbackHandler;
 import com.fluxcraft.MiaoMenu.menu.requirement.RequirementService;
 import com.fluxcraft.MiaoMenu.proxy.ProxyManager;
 import com.fluxcraft.MiaoMenu.security.RateLimiter;
-import com.fluxcraft.MiaoMenu.update.UpdateChecker;
 import com.fluxcraft.MiaoMenu.update.UpdateNoticeListener;
+import com.fluxcraft.MiaoMenu.update.UpdateService;
 import com.fluxcraft.MiaoMenu.utils.Lang;
 
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -62,7 +63,7 @@ public class MiaoMenu extends JavaPlugin {
     private ProxyManager proxyManager;
     private RequirementService requirementService;
     private RateLimiter interactionRateLimiter;
-    private UpdateChecker updateChecker;
+    private UpdateService updateService;
     private ActionRegistry actionRegistry;
 
     private Class<?> floodgateApiClass;
@@ -77,7 +78,7 @@ public class MiaoMenu extends JavaPlugin {
             registerListeners();
             registerCommands();
             initializeOptionalFeatures();
-            initializeUpdateChecker();
+            initializeUpdateService();
             printAboutBanner();
             getLogger().info(Lang.get("log.plugin.enabled").replace("{0}", getPluginMeta().getVersion()));
         } catch (RuntimeException e) {
@@ -113,9 +114,9 @@ public class MiaoMenu extends JavaPlugin {
         return sb.toString();
     }
 
-    private void initializeUpdateChecker() {
-        updateChecker = new UpdateChecker(this);
-        updateChecker.refreshAsync(); // 非同步、失敗不影響啟動
+    private void initializeUpdateService() {
+        updateService = new UpdateService(this);
+        updateService.handleStartupCheck();
     }
 
     @Override
@@ -348,7 +349,11 @@ public class MiaoMenu extends JavaPlugin {
         return menuClockManager;
     }
 
-    public UpdateChecker getUpdateChecker() {
-        return updateChecker;
+    public File getPluginFile() {
+        return getFile();
+    }
+
+    public UpdateService getUpdateService() {
+        return updateService;
     }
 }

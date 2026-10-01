@@ -73,6 +73,15 @@ help:
         &7常見語言碼：&fen&7（英文）、&fzh_TW&7（繁中）；你也可以在 plugins/MiaoMenu_fork/lang/ 內放 &f<code>.yml&7 自訂語言檔。
         &7切換後 &f/dgm help&7 與所有訊息會跟著變語系，無需重啟。
       permission: "&fdgeysermenu.admin"
+    update:
+      usage: |-
+        &f/dgm update [check]
+        &f/dgm update download [release|beta]
+      detail: |-
+        &7GitHub Releases 雙軌更新檢測與自動下載。
+        &7  · &fcheck&7 — 連線 GitHub 檢測正式穩定版與搶先測試版
+        &7  · &fdownload [release|beta]&7 — 下載新版本並安全覆蓋外掛 jar 檔案
+      permission: "&fdgeysermenu.admin"
     about:
       usage: "&f/dgm about"
       detail: |-
@@ -100,6 +109,7 @@ descriptions:
   reload: "&c✦ 讓核心法則重煥新生"
   import: "&b✦ 從舊版插件資料夾引渡選單與設定"
   lang: "&d✦ 切換顯示語言並重新載入訊息"
+  update: "&e✦ 檢測並自動更新插件版本"
   about: "&7✦ 關於這個插件（版本、原作、Modrinth）"
   whoami: "&7✦ 診斷 Floodgate 對你的辨識結果"
   help: "&e✦ 探索智慧的指引篇章"

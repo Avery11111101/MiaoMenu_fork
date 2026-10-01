@@ -24,6 +24,7 @@ import com.fluxcraft.MiaoMenu.commands.impl.ImportCommand;
 import com.fluxcraft.MiaoMenu.commands.impl.LangCommand;
 import com.fluxcraft.MiaoMenu.commands.impl.OpenCommand;
 import com.fluxcraft.MiaoMenu.commands.impl.ReloadCommand;
+import com.fluxcraft.MiaoMenu.commands.impl.UpdateCommand;
 import com.fluxcraft.MiaoMenu.commands.impl.WhoamiCommand;
 import com.fluxcraft.MiaoMenu.utils.Lang;
 
@@ -31,11 +32,12 @@ public class CommandManager implements CommandExecutor, TabCompleter {
     private static final String CMD_HELP = "help";
 
     // 子指令在 tab-complete 中顯示所需的最小權限；任何使用者都看得到的子指令對應 null。
-    // 與 plugin.yml 的 permissions 區段對齊：admin 涵蓋 reload/import/lang。
+    // 與 plugin.yml 的 permissions 區段對齊：admin 涵蓋 reload/import/lang/update。
     private static final Map<String, String> SUBCOMMAND_PERMISSIONS = Map.of(
             "reload", "dgeysermenu.reload",
             "import", "dgeysermenu.import",
-            "lang", "dgeysermenu.admin"
+            "lang", "dgeysermenu.admin",
+            "update", "dgeysermenu.admin"
     );
 
     private final Map<String, PluginCommand> commands = new LinkedHashMap<>();
@@ -53,6 +55,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         register("reload", new ReloadCommand(plugin));
         register("import", new ImportCommand(plugin));
         register("lang", new LangCommand(plugin));
+        register("update", new UpdateCommand(plugin));
         register("about", new AboutCommand(plugin));
         register("whoami", new WhoamiCommand(plugin));
         helpCommand = new HelpCommand(helpDescriptions);

@@ -1,86 +1,273 @@
-# MiaoMenu Language File | English (United States)
-# Supports & color codes (e.g. &c &a &6 &7 &8 &e)
+# MiaoMenu_fork language file (English)
+# Fork:           https://github.com/Avery11111101/MiaoMenu_fork
+# 原作 / Original: https://github.com/Yamada0001/MiaoMenu
+# Color codes use '&'. Placeholders: {0}, {1}, ...
 
-default-item-name: "&6Chronolens &7(Right-click to open menu)"
+default-item-name: "&6Mirror of Time &7(right-click to open menu)"
 
 message:
-  no-permission: "&c✦ Nice try, but you're not cleared for that."
-  players-only: "&c✦ You gotta be in the game to call that shot."
-  menu-not-found: "&c✦ No menu called &e{0}&c rings a bell. Double-check the spelling?"
-  requirement-denied: "&c✦ Not quite there yet — you're missing the prerequisites."
-  item-locked: "&c✦ Still under wraps. Come back when you've leveled up."
+  no-permission: "&c✦ You don't have permission to use this command."
+  players-only: "&c✦ Only players can use this command."
+  menu-not-found: "&c✦ Menu &e{0}&c was not found. Please check the spelling."
+  error: "&c✦ Operation failed. Please check the console for details."
+  invalid-player: "&c✦ Player not found, or they are offline."
+  requirement-denied: "&c✦ Requirements are not met to perform this menu action."
+  item-locked: "&c✦ This feature is not unlocked yet."
   item-locked-suffix: " &8[Locked]"
   bedrock-locked-prefix: " &8[Locked] &7"
-  config-updated: "&e✦ Heads up — your config was outdated, so we brought it up to speed."
-  reloaded: "&a✦ Reloaded and raring to go!"
-  io-error: "&c✦ Hit a wall reading the disk. Check your file permissions."
-  usage-open: "&c✦ Here's the drill: /dgm open <menu-name>"
-  help:
-    header: "&6✿ &eHey there, wanderer &6✿"
-    usage: "&7✎ Hover for the lowdown, click to pull the trigger"
+  unsafe-input: "&c✦ Input does not meet safety rules; the action was blocked."
+  rate-limited: "&c✦ Too many actions, please try again later."
+  config-update-warning: "&e✦ Old configuration detected; attempting auto-migration..."
+  reloaded: "&a✦ Configuration reloaded; everything is ready."
+  io-error: "&c✦ Unable to write to disk (IO error); please check file permissions."
+  craftengine-missing: "&e✦ CraftEngine is not installed; using fallback material."
+  craftengine-item-not-found: "&e✦ CraftEngine item &6{0}&e does not exist; using fallback material."
+  config-updated: "&a✦ Configuration has been auto-updated to the latest version."
+
+verbose:
+  config-adding-key: "✦ Adding missing key: {0}"
+  config-keys-added: "✦ Config updated; {0} key(s) added."
+
+help:
+  header: "&6✿ &eHello, traveller &6✿"
+  usage: "&7✎ Hover to see details, click to run the command"
+  detail-hint: "&7✎ For a single-command deep dive, type &f/dgm help <command>"
+  unknown-command: "&c✦ Unknown command &e{0}&c. Run &f/dgm help&c for the full list."
+  detail:
+    header: "&6✿ &e/dgm {0} &6— command details ✿"
+    usage-label: "&7Usage:"
+    permission-label: "&7Permission:"
+  commands:
+    open:
+      usage: "&f/dgm open <menu>"
+      detail: |-
+        &7Open the specified menu.
+        &7Java players get a chest GUI, Bedrock players get a Floodgate form — auto-dispatched.
+        &7The menu name supports tab completion (lists everything under java_menus/ and bedrock_menus/).
+      permission: "&fdgeysermenu.use"
+    reload:
+      usage: "&f/dgm reload"
+      detail: |-
+        &7Reload config.yml plus all Java and Bedrock menus.
+        &7If you edited a lang file, run &f/dgm lang <current_code>&7 (or restart) so messages refresh too.
+      permission: "&fdgeysermenu.reload"
+    import:
+      usage: |-
+        &f/dgm import scan
+        &f/dgm import preview <source>
+        &f/dgm import apply <source> <token> [--overwrite|--rename]
+        &f/dgm import rollback [backupId]
+      detail: |-
+        &7Manually import legacy data on an already-running server.
+        &7Supported sources:
+        &7  · &fDGeyserMenu&7 / &fdgeysermenu&7 / &fMiaoMenu&7 — same schema, copied verbatim
+        &7  · &fDeluxeMenus&7 / &fdmenu&7 — different schema, gui_menus is auto-converted into java_menus/<id>.yml
+        &7Flow: scan → preview to get a token → apply with the token (conflicts get auto-backed-up to backups/) → rollback if needed.
+        &7Default conflict policy is SKIP; pass &f--overwrite&7 to overwrite in place or &f--rename&7 to keep both with an .imported suffix.
+      permission: "&fdgeysermenu.import &7or &fdgeysermenu.admin"
+    lang:
+      usage: "&f/dgm lang [<code>] &7or &f/mmflang <code> &7or &f/lang <code>"
+      detail: |-
+        &7Switch MiaoMenu_fork's display language and reload all messages on the fly.
+        &7With no argument, prints the current language and the list of available codes.
+        &7Common codes: &fen&7 (English), &fzh_TW&7 (Traditional Chinese). Drop your own &f<code>.yml&7 into plugins/MiaoMenu_fork/lang/ to add a locale.
+        &7After switching, &f/dgm help&7 and every other message changes language — no restart required.
+      permission: "&fdgeysermenu.admin"
+    update:
+      usage: |-
+        &f/dgm update [check]
+        &f/dgm update download [release|beta]
+      detail: |-
+        &7GitHub Releases dual-track update checker and auto-downloader.
+        &7  · &fcheck&7 — Check GitHub for latest official release and preview beta
+        &7  · &fdownload [release|beta]&7 — Download new release and safely replace the plugin jar
+      permission: "&fdgeysermenu.admin"
+    about:
+      usage: "&f/dgm about"
+      detail: |-
+        &7Show plugin version, Fork / Original GitHub links and the Modrinth download page.
+        &7If a newer version is detected on Modrinth, it's shown at the bottom.
+      permission: "&7(no permission needed)"
+    whoami:
+      usage: "&f/dgm whoami"
+      detail: |-
+        &7Diagnoses how Floodgate / Geyser identifies you. Use this when a Bedrock
+        &7player ends up seeing the Java chest GUI (common with Velocity proxies).
+        &7Prints: floodgate plugin version, isFloodgatePlayer result, UUID prefix,
+        &7Bedrock username / xuid, linkedPlayer status, and the final smart-dispatch verdict.
+        &7Any false / null line points to the broken link — no need to dig through server logs.
+      permission: "&7(no permission needed; only shows your own info)"
+    help:
+      usage: "&f/dgm help [<sub>]"
+      detail: |-
+        &7Without an argument, lists every subcommand; with an argument, shows that subcommand's deep dive.
+        &7Example: &f/dgm help import&7 prints the full import walkthrough.
+      permission: "&7(no permission needed)"
 
 descriptions:
-  open: "&a✦ Crack open a specific menu"
-  reload: "&c✦ Give the config a fresh coat of paint"
-  help: "&e✦ Your trusty cheat sheet"
+  open: "&a✦ Open the specified menu"
+  reload: "&c✦ Reload the plugin configuration"
+  import: "&b✦ Import menus & config from a legacy plugin folder"
+  lang: "&d✦ Switch display language and reload messages"
+  update: "&e✦ Check and update plugin version"
+  about: "&7✦ Plugin info (version, source, Modrinth)"
+  whoami: "&7✦ Diagnose how Floodgate identifies you"
+  help: "&e✦ Show the help page"
 
 command:
-  unknown: "&c✦ That command fell on deaf ears. Try /dgm help to get your bearings."
-  main-alias: "dgm"
+  unknown: "&c✦ Unknown command. Please run /dgm help."
+  usage-open: "&c✦ Usage: /dgm open <menu-name>"
+  usage-import: |-
+    &c✦ Usage:
+    &7  /dgm import scan
+    &7  /dgm import preview <source>
+    &7  /dgm import apply <source> <token> [--overwrite|--rename]
+    &7  /dgm import rollback [backupId]
+  usage-lang: "&c✦ Usage: &f/dgm lang <code>&c or &f/mmflang <code>&c (no arg = show current + available)"
+
+import:
+  scan:
+    header: "&b✦ Detected &e{0} &bimportable candidate folder(s):"
+    entry: "&7  · &e{0} &7— Java menus &a{1} &7/ Bedrock menus &a{2} &7/ config-version &b{3}"
+    entry-deluxemenus: "&7  · &e{0} &d[DeluxeMenus]&7 — menus &a{1} &7(auto-converted into both java_menus/ and bedrock_menus/, original folder preserved)"
+    empty: "&e✦ No importable folder detected (searches plugins/ for DGeyserMenu, dgeysermenu, MiaoMenu, DeluxeMenus, dmenu)."
+    hint: "&7✎ Next: &f/dgm import preview <source> &7to view diff and confirm token."
+  preview:
+    header: "&b✦ Preview &e{0}&b: add &a{1} &b/ skip &7{2} &b/ conflict &c{3}"
+    add: "&a  + {0}"
+    skip: "&7  = {0}"
+    conflict: "&c  ! {0}"
+    truncated: "&7  ... ({0} more not shown)"
+    token: "&e✦ Confirm token: &f{0} &7— apply with &f/dgm import apply {1} {0}"
+    unknown-source: "&c✦ Importable folder &e{0}&c not found. Try &f/dgm import scan&c first."
+    io-error: "&c✦ IO error while previewing &e{0}&c. See console for details."
+    deluxemenus-note: |-
+      &d✦ DeluxeMenus layout detected — two outputs will be produced per menu
+      &7  · &fjava_menus/<id>.yml&7 — Java chest GUI (preserves slot, full left/right/middle/shift click chains)
+      &7  · &fbedrock_menus/<id>.yml&7 — Bedrock Floodgate form (slot-ordered button list; only the first action per button)
+      &7  · Action prefix mapping: [console]→[cmd], [openguimenu] X→[player] dgm open X; the rest is preserved
+      &7  · material → Bedrock texture follows a vanilla mapping table; unmapped materials fall back to text-only buttons
+      &7  · update / skin fields are not carried over; conditions / view_requirement are kept verbatim for your review
+      &7  · The original DeluxeMenus folder is untouched; rollback is always available
+  apply:
+    no-session: "&c✦ No matching preview session found (expired after 5 min). Re-run &f/dgm import preview <source>&c."
+    token-mismatch: "&c✦ Source or token mismatch. Please re-check the preview output."
+    success: "&a✦ Imported &e{0}&a: added &f{1}&a / skipped &f{2}&a / conflicts handled &f{3}&a, backup &7{4}&a. Menus reloaded."
+    io-error: "&c✦ IO error while applying. See console. Existing backup is preserved."
+  rollback:
+    success: "&a✦ Restored &f{1}&a files from backup &e{0}&a and reloaded."
+    not-found: "&e✦ No import backups available."
+    io-error: "&c✦ Failed to restore backup &e{0}&c. See console for details."
+
+lang:
+  current: "&b✦ Current language: &f{0}"
+  available: "&7✎ Available: &f{0}"
+  unknown: "&c✦ Language file &e{0}&c not found. Available: &f{1}"
+  changed: "&a✦ Language switched to &f{0}&a. All messages reloaded."
+  save-failed: "&c✦ Failed to switch language to &e{0}&c: IO error while writing config.yml. See console."
+
+about:
+  header: "&6✿ &eMiaoMenu_fork &6✿"
+  version: "&7Version: &f{0}"
+  author: "&7Author: &fAvery11111101"
+  fork: "&7Fork: &b{0}"
+  modrinth: "&7Modrinth: &b{0}"
+  footer: "&8Thanks for using MiaoMenu_fork ✦ (see the Fork link for upstream attribution)"
+  update-available: "&e✦ Update available: &6{0}&e (current &7{1}&e) → download: &b{2}"
 
 open:
-  error: "&c✦ The menu balked. Check the console for the nitty-gritty."
+  error: "&c✦ Failed to open the menu. Please check the console log."
+
+whoami:
+  header: "&6✿ &eMiaoMenu_fork &7— &fFloodgate diagnostics &6✿"
+  floodgate-plugin: "&7floodgate plugin: &f{0}"
+  geyser-plugin: "&7Geyser-Spigot plugin: &f{0}"
+  uuid: "&7Your UUID: &f{0} &8(Bedrock players normally start with 00000000-0000-0000)"
+  smart-dispatch: "&7smart-dispatch verdict (Bedrock): &f{0}"
+  floodgate-api: "&7FloodgateApi reachable: &f{0}"
+  is-floodgate-player: "&7isFloodgatePlayer(uuid): &f{0}"
+  floodgate-username: "&7Bedrock username: &f{0}"
+  floodgate-xuid: "&7XUID: &f{0}"
+  floodgate-linked: "&7Linked Java account (linkedPlayer): &f{0}"
+  floodgate-error: "&cReflection error: &f{0}"
+  verdict-bedrock: "&a✦ Identified as Bedrock → menus will open via Floodgate SimpleForm (native UI)."
+  verdict-java: "&c✦ Identified as Java → menus will open via chest GUI. If you actually connected from Bedrock, the usual culprit is a mismatched Floodgate key.pem between Velocity and this backend, a wrong auth-type, or a linked Java account bypassing Floodgate."
+  missing: "&cnot installed"
+  enabled: "&aenabled"
+  disabled: "&edisabled"
+  true: "&atrue"
+  false: "&cfalse"
+  null: "&7(null)"
+
+bedrock:
+  unsupported-button: "&c✦ This button uses Java-only actions (shift+left/right click, middle click, right click) and cannot run on Bedrock. Switch to a Java client if you need to trigger it."
 
 menu:
   clock:
-    name: "&6Chronolens &7(Right-click to open menu)"
-    given: "&a✦ You've got the Chronolens! Right-click to jump straight into the menu!"
+    name: "&6Mirror of Time &7(right-click to open menu)"
+    given: "&a✦ You have received the Mirror of Time. Right-click to open the menu!"
+    restored: "&f✦ Your item has been restored."
+  locked-tag: "&8[Locked]"
 
 hot-reload:
-  initialized: "✦ Hot-reload is up and running."
-  detected: "✦ Picked up a change in {0}. Shuffling menus..."
+  initialized: "✦ Menu hot-reload watcher started."
+  detected: "✦ Change detected: {0}, reloading menus..."
 
 log:
   plugin:
     enabled: "MiaoMenu v{0} Enabled."
     enable-failed: "Fatal error occurred while enabling MiaoMenu. Disabling plugin."
   config:
-    backup-delete-failed: "Couldn't toss the old backup file {0}."
-    backup-create-failed: "Couldn't stash a backup of {0}; forging ahead with the overwrite."
-    menu-refresh-failed: "Fell short trying to refresh the sample menu files."
+    backup-delete-failed: "Failed to delete backup file {0}."
+    backup-create-failed: "Failed to back up file {0}; continuing with overwrite."
+    menu-refresh-failed: "Failed to refresh menu example files."
+    example-missing: "Example resource '{0}' is missing from the plugin jar; skipping auto-generation."
   command:
-    register-failed: "No dice registering command '{0}'. Give your plugin.yml a once-over."
-    descriptions-missing: "The 'descriptions' section seems to have gone AWOL from the language file."
-    execute-failed: "Command '{0}' tripped up for sender '{1}'."
+    register-failed: "Failed to register command '{0}'. Please check your plugin.yml."
+    descriptions-missing: "Could not find a 'descriptions' node in lang/<language>.yml or config.yml."
+    execute-failed: "Failed to execute command '{0}' for sender '{1}'."
+  import:
+    preview-failed: "Failed to preview legacy data '{0}'."
+    copy-failed: "Failed to copy file while importing legacy data '{0}'."
+    completed: "Legacy data '{0}' imported by {1}; backup: {2}."
+    rollback-failed: "Failed to restore backup '{0}'."
+  lang:
+    changed: "Display language switched to '{0}' by {1}."
+    save-failed: "Failed to write config.yml while switching language to '{0}'."
+  update:
+    fetch-failed: "Failed to fetch latest version from Modrinth ({0}); update check skipped."
+    available: "New version available: {0} (current {1}). Download: https://modrinth.com/plugin/miaomenu_fork"
+    up-to-date: "Plugin is up to date."
   action:
-    dispatch-failed: "Action '{0}' went sideways for player '{1}'."
-    unsafe-content: "Caught red-handed: blocked shady command content '{0}' from player '{1}'."
+    dispatch-failed: "Failed to dispatch action '{0}' for player '{1}'."
+  requirement:
+    unknown-type: "Unknown requirement type '{0}' — please check your menu YAML. Subsequent occurrences will be silenced."
   hot-reload:
-    initialize-failed: "Couldn't get HotReloadManager off the ground. Auto-reload is kaput."
-    loop-failed: "The HotReloadManager watchdog hit a snag."
+    initialize-failed: "Failed to initialize HotReloadManager. Menu hot-reload will be disabled."
+    loop-failed: "HotReloadManager watcher loop failed."
   floodgate:
-    player-check-failed: "Couldn't tell if player {0} is rocking Floodgate."
+    player-check-failed: "Failed to check whether player {0} is a Floodgate player."
   bstats:
-    initialize-failed: "BStats refused to start."
+    initialize-failed: "BStats initialization failed."
   proxy:
-    detected: "Proxy in the house: {0} — cross-server commands are live."
-    velocity-forwarding-required: "Velocity mode: make sure BungeeCord plugin messaging is switched on."
-    disabled: "No proxy in sight — cross-server commands are off the table."
-    not-detected: "No proxy detected. Can't beam commands across servers."
-    send-failed: "Cross-server command fell through. Target server: {0}"
-    channel-not-registered: "Channel {0} hasn't been registered yet."
-    message-create-failed: "Couldn't cook up a cross-server message. Target server: {0}"
-    message-received: "Got a BungeeCord message: {0}"
-    response-handle-failed: "Dropped the ball handling the BungeeCord response."
+    detected: "Proxy detected: {0} - cross-server commands enabled."
+    velocity-forwarding-required: "Velocity mode: please make sure BungeeCord plugin-message forwarding is enabled."
+    disabled: "No proxy detected - cross-server commands disabled."
+    not-detected: "No proxy detected; cannot send cross-server commands."
+    send-failed: "Failed to send cross-server command to target server: {0}."
+    channel-not-registered: "Channel {0} is not registered."
+    message-create-failed: "Failed to create cross-server message for target server: {0}."
+    message-received: "Received BungeeCord message: {0}"
+    response-handle-failed: "Failed to handle BungeeCord response."
   java-menu:
-    directory-create-failed: "Couldn't carve out the java_menus directory."
-    load-failed: "Couldn't load menu: {0}"
-    open-failed: "Something went sideways opening menu {0}"
+    directory-create-failed: "Failed to create java_menus directory."
+    load-failed: "Failed to load menu: {0}"
+    open-failed: "Error opening menu {0}"
   bedrock-menu:
-    directory-create-failed: "Couldn't carve out the bedrock_menus directory. Give the file permissions a look."
-    load-failed: "Couldn't load Bedrock menu: {0}"
-    send-failed: "Couldn't get form '{0}' to Bedrock player {1}."
-    form-build-returned-null: "Form for Bedrock player {0} came back empty-handed."
-    form-build-failed: "Bedrock form build hit a dead end."
-    reflection-send-failed: "Couldn't push the Floodgate form for menu '{0}' to player {1}."
-    reflection-setup-failed: "Couldn't wire up Floodgate/Cumulus reflection."
+    directory-create-failed: "Failed to create bedrock_menus directory. Please check file permissions."
+    load-failed: "Failed to load Bedrock menu: {0}"
+    send-failed: "Failed to send form '{0}' to Bedrock player {1}."
+    form-build-returned-null: "Failed to build form for Bedrock player: {0}"
+    form-build-failed: "Failed to build Bedrock form."
+    reflection-send-failed: "Failed to send Floodgate form for menu '{0}' to player {1}."
+    reflection-setup-failed: "Failed to initialize Floodgate/Cumulus reflection access."

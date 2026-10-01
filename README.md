@@ -17,6 +17,7 @@
   - 支援 `base64head:<hash>` 與動態玩家頭顱皮膚，直接解析為 Mojang CDN 圖片並於基岩端正常顯示。
   - 內建 `BedrockTextureMapper`，涵蓋 1.16~1.21+（包括重錘 Mace、合成器 Crafter、下界合金、染色玻璃板等）所有材質對照。
 - 🔄 **JavaMenu 自動無痛轉譯**：若服主未單獨建立 `bedrock_menus/`，基岩玩家開啟時將自動由 `java_menus/` 動態轉譯為基岩版表單，完全無需手動維護雙倍選單檔案！
+- 🚀 **GitHub Releases 雙軌自動更新**：移植自 ashop 之健全雙軌更新機制，支援正式穩定版 (🌟) 與搶先測試版 (🧪) 雙通道比對、Release Notes 轉 MC 聊天色彩排版、Windows JVM 鎖定安全替換與開機/進服提示。
 - ⚡ **Paper 現代 API 與 Java 25 原生支援**：
   - 全面相容最新 Paper 26.2 / Folia 原生排程器。
   - 支援動態玩家頭顱材質（`player_head:<player_name>` 與 `head:<name>`）。
@@ -27,11 +28,30 @@
 Fork 版重點放在 **不改使用者操作習慣**：
 
 - 主指令 `/dgeysermenu`、`/dgm`、`/fluxmenu` 全數保留，**額外新增** `/mmf` 別名
-- 子指令 `open / reload / help`、`/getmenuclock` 全數保留
+- 子指令 `open / reload / import / lang / update / about / whoami / help`、`/getmenuclock` 全數保留
 - 權限節點 `dgeysermenu.*`、`dgeysermenu.use`、`dgeysermenu.admin`、`dgeysermenu.reload` 全數保留
 - `config.yml`、`java_menus/*.yml`、`bedrock_menus/*.yml` 鍵名與結構保留，原本的設定檔可直接帶過來
 
 唯一新增的設定是 `language: en|zh_TW`（缺省即 `en`），並把 `config.yml` 內原本的 `messages:` 區塊搬到 `lang/<language>.yml`。若你升級時保留原 `config.yml`，插件啟動會偵測 `config-version` 自動補上新鍵，不會壞掉舊設定。
+
+### 雙軌自動更新與安全替換（`/dgm update`，1.4.1 新增）
+
+需要 `dgeysermenu.admin` 權限。支援 GitHub Releases 雙軌（正式版 🌟 vs 測試版 🧪）版本檢測與一鍵安全升級：
+
+```
+/dgm update                      # 檢查 GitHub 最新發布版本與更新日誌
+/dgm update check                # 同上
+/dgm update download release     # 下載最新正式穩定版並安全取代外掛檔案
+/dgm update download beta        # 下載最新搶先測試版並安全取代外掛檔案
+```
+
+**更新防護機制**：
+- **快取防限流**：內建 3 分鐘快取機制，防止頻繁請求觸發 GitHub API 速率限制。
+- **Release Notes 彩色轉換**：動態將 GitHub Markdown 語法轉換為 Minecraft 彩色聊天文字。
+- **Windows JVM 鎖定保護**：
+  - 若新舊檔案名稱相同（如同為 `MiaoMenu_fork.jar`）：優先原子替換，若遭遇 Windows JVM 鎖定則自動降級寫入 Bukkit 標準 `plugins/update/` 目錄，伺服器重啟時自動生效。
+  - 若新舊檔案帶有版本號：直接寫入新檔案，舊檔案排定伺服器關機時自動清除，避免雙版本衝突。
+- **管理員進服提示**：具有 `dgeysermenu.admin` 權限的管理者上線時，若有新版本，延遲 2 秒（40 ticks）非同步提示，避免進服訊息被刷掉。相容 Paper 與 Folia。
 
 ### 無痛轉移（自動匯入舊資料夾）
 

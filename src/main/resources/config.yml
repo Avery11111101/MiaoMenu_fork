@@ -47,3 +47,19 @@ settings:
   menu-clock:
     enabled: true # 是否啟用整個鐘錶功能
     give-on-join: true # 會檢測背包是否已有鐘錶，避免重複發放。
+
+# =========================================================
+# 自動更新設定 (GitHub Releases 雙軌更新系統)
+# =========================================================
+updater:
+  # GitHub 儲存庫 (擁有者/專案名稱)
+  repo: "Avery11111101/MiaoMenu_fork"
+  # 更新通道：RELEASE (正式穩定版 🌟) 或 BETA (搶先測試版 🧪)
+  channel: "RELEASE"
+  # 伺服器啟動時是否非同步檢查更新
+  check-on-startup: true
+  # 發現更新時是否自動在背景下載 .jar 檔案
+  auto-download: false
+  # 管理員進服時是否發送更新提示 (需 dgeysermenu.admin 權限)
+  notify-admin-on-join: true
+

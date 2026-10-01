@@ -73,6 +73,15 @@ help:
         &7Common codes: &fen&7 (English), &fzh_TW&7 (Traditional Chinese). Drop your own &f<code>.yml&7 into plugins/MiaoMenu_fork/lang/ to add a locale.
         &7After switching, &f/dgm help&7 and every other message changes language — no restart required.
       permission: "&fdgeysermenu.admin"
+    update:
+      usage: |-
+        &f/dgm update [check]
+        &f/dgm update download [release|beta]
+      detail: |-
+        &7GitHub Releases dual-track update checker and auto-downloader.
+        &7  · &fcheck&7 — Check GitHub for latest official release and preview beta
+        &7  · &fdownload [release|beta]&7 — Download new release and safely replace the plugin jar
+      permission: "&fdgeysermenu.admin"
     about:
       usage: "&f/dgm about"
       detail: |-
@@ -100,6 +109,7 @@ descriptions:
   reload: "&c✦ Reload the plugin configuration"
   import: "&b✦ Import menus & config from a legacy plugin folder"
   lang: "&d✦ Switch display language and reload messages"
+  update: "&e✦ Check and update plugin version"
   about: "&7✦ Plugin info (version, source, Modrinth)"
   whoami: "&7✦ Diagnose how Floodgate identifies you"
   help: "&e✦ Show the help page"

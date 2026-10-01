@@ -7,7 +7,7 @@ import org.bukkit.command.CommandSender;
 
 import com.fluxcraft.MiaoMenu.MiaoMenu;
 import com.fluxcraft.MiaoMenu.commands.PluginCommand;
-import com.fluxcraft.MiaoMenu.update.UpdateChecker;
+import com.fluxcraft.MiaoMenu.update.UpdateService;
 import com.fluxcraft.MiaoMenu.utils.Lang;
 
 /**
@@ -30,12 +30,15 @@ public class AboutCommand implements PluginCommand {
         for (String line : renderLines(plugin)) {
             sender.sendMessage(line);
         }
-        UpdateChecker checker = plugin.getUpdateChecker();
-        if (checker != null && checker.hasUpdate()) {
-            sender.sendMessage(Lang.get("about.update-available")
-                    .replace("{0}", checker.getLatestVersion())
-                    .replace("{1}", plugin.getPluginMeta().getVersion())
-                    .replace("{2}", MODRINTH_URL));
+        UpdateService service = plugin.getUpdateService();
+        if (service != null && service.hasUpdate()) {
+            var release = service.getCachedLatestRelease();
+            if (release != null) {
+                sender.sendMessage(Lang.get("about.update-available")
+                        .replace("{0}", release.tagName())
+                        .replace("{1}", plugin.getPluginMeta().getVersion())
+                        .replace("{2}", release.htmlUrl()));
+            }
         }
     }
 
