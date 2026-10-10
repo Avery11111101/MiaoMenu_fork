@@ -8,7 +8,7 @@
 >
 ### 面向 Paper / Folia / Geyser **26.2.x**（Java 25）的輕量級選單插件，同時為 Java 版與基岩版玩家提供原生互動體驗，內建多語系切換支援。
 
-## 🌟 核心特色亮點 (1.4.1)
+## 🌟 核心特色亮點 (1.4.0)
 
 - 🎮 **跨平臺原生體驗**：Java 版箱子 GUI，基岩版（Geyser / Floodgate）自動渲染為 Cumulus 原生 SimpleForm 表單。
 - 🖼️ **基岩版圖片智慧修復與防呆**：
@@ -34,7 +34,7 @@ Fork 版重點放在 **不改使用者操作習慣**：
 
 唯一新增的設定是 `language: en|zh_TW`（缺省即 `en`），並把 `config.yml` 內原本的 `messages:` 區塊搬到 `lang/<language>.yml`。若你升級時保留原 `config.yml`，插件啟動會偵測 `config-version` 自動補上新鍵，不會壞掉舊設定。
 
-### 雙軌自動更新與安全替換（`/dgm update`，1.4.1 新增）
+### 雙軌自動更新與安全替換（`/dgm update`，1.4.0 新增）
 
 需要 `dgeysermenu.admin` 權限。支援 GitHub Releases 雙軌（正式版 🌟 vs 測試版 🧪）版本檢測與一鍵安全升級：
 
